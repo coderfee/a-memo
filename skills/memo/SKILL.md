@@ -1,5 +1,5 @@
 ---
-name: a-memo
+name: memo
 description: >
   轻量 memo 工具，供 AI agent 使用。用于记录、检索、回顾和生成分享图。
 ---
