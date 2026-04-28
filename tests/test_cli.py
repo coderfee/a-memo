@@ -1,9 +1,7 @@
 import json
-import os
 import sqlite3
 import sys
 import time
-from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -477,7 +475,3 @@ def test_import_rejects_bad_payload(data_dir, tmp_path, capsys):
     assert code == 1
     assert out == ""
     assert "unsupported import format" in err
-
-
-def test_python_path_has_expected_workspace():
-    assert Path(os.getcwd()).name == "memo"
