@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv run *)",
+      "Bash(uv pip *)",
+      "Read(//Users/chen/.local/share/uv/tools/memo/**)"
+    ]
+  }
+}

@@ -1,0 +1,8 @@
+.venv/
+__pycache__/
+*.pyc
+.memo/           # 用户数据目录（数据库、图片、历史）
+uv.lock          # 由 pyproject.toml 生成，不需要提交
+.DS_Store
+*.db-shm
+*.db-wal
