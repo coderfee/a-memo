@@ -93,10 +93,10 @@ def _suggest(cmd):
 
 
 def _print_help_and_exit():
-    print("memoi — lightweight memo CLI for AI agents")
+    print("memo — lightweight memo CLI for AI agents")
     print()
     print("USAGE:")
-    print("    memoi <command> [options]")
+    print("    memo <command> [options]")
     print()
     print("COMMANDS:")
     print("    init           initialize database")
@@ -120,12 +120,12 @@ def _print_help_and_exit():
     print("    -h, --help     show help")
     print("    -v, --version  show version")
     print()
-    print("more: memoi <command> --help")
+    print("more: memo <command> --help")
     sys.exit(0)
 
 
 def _print_version_and_exit():
-    print(f"memoi {_get_version()}")
+    print(f"memo {_get_version()}")
     sys.exit(0)
 
 
@@ -138,7 +138,7 @@ def main(argv=None):
     if raw[0] in ("-v", "--version"):
         _print_version_and_exit()
 
-    parser = argparse.ArgumentParser(prog="memoi", add_help=False, exit_on_error=False)
+    parser = argparse.ArgumentParser(prog="memo", add_help=False, exit_on_error=False)
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     for cmd in COMMANDS:
