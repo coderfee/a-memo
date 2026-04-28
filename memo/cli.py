@@ -8,7 +8,7 @@ from . import connect
 def _get_version():
     try:
         from importlib.metadata import version
-        return version("memo")
+        return version("a-memo")
     except Exception:
         return "0.1.0"
 

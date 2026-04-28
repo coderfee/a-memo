@@ -1,6 +1,6 @@
 [project]
 name = "a-memo"
-version = "0.1.0"
+version = "0.1.4"
 description = "Lightweight memo CLI tool with SQLite + FTS5"
 readme = "README.md"
 requires-python = ">=3.11"
