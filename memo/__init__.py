@@ -1,8 +1,59 @@
 """memo CLI 核心模块"""
+
+import json
 import os
 import sqlite3
 import sys
 from pathlib import Path
+
+from .helpers import (
+    choose_review_layer,
+    clean_content,
+    fmt_datetime,
+    fmt_history_time,
+    fmt_review_time,
+    fmt_time,
+    fts_query,
+    history_file_path,
+    normalize_link_ids,
+    parse_tags,
+    render_memo_text,
+    render_share_svg,
+    review_layer_bounds,
+    split_tags_and_content,
+    validate_relation_type,
+    wrap_text,
+)
+
+__all__ = [
+    "choose_review_layer",
+    "clean_content",
+    "connect",
+    "DEFAULT_DATA_DIR",
+    "ensure_data_dir",
+    "fmt_datetime",
+    "fmt_history_time",
+    "fmt_review_time",
+    "fmt_time",
+    "fts_query",
+    "get_data_dir",
+    "get_db_path",
+    "get_history_dir",
+    "get_images_dir",
+    "history_file_path",
+    "is_db_initialized",
+    "linked_memos_for",
+    "normalize_link_ids",
+    "parse_tags",
+    "render_memo_text",
+    "render_share_svg",
+    "require_memos",
+    "review_layer_bounds",
+    "split_tags_and_content",
+    "validate_relation_type",
+    "warn",
+    "wrap_text",
+]
 
 SCHEMA = """
   CREATE TABLE IF NOT EXISTS memos (
@@ -141,27 +192,3 @@ def linked_memos_for(conn, memo_id, limit=None):
             entry["note"] = row["note"]
         result.append(entry)
     return result
-
-
-# ── re-export helpers for commands ────────────────────────────────────────────
-
-from .helpers import (
-    parse_tags,
-    clean_content,
-    split_tags_and_content,
-    render_memo_text,
-    fmt_time,
-    fmt_datetime,
-    fmt_review_time,
-    fmt_history_time,
-    history_file_path,
-    wrap_text,
-    render_share_svg,
-    choose_review_layer,
-    review_layer_bounds,
-    fts_query,
-    normalize_link_ids,
-    validate_relation_type,
-)
-
-import json
