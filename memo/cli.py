@@ -3,7 +3,7 @@
 import argparse
 import sys
 
-from . import connect
+from . import connect, get_db_path
 
 
 def _get_version():
@@ -39,6 +39,9 @@ COMMANDS = [
     "link",
     "unlink",
     "links",
+    "backup",
+    "export",
+    "import",
     "rebuild-fts",
     "image",
     "flomo-import",
@@ -47,6 +50,7 @@ COMMANDS = [
 _MOD_ALIASES = {
     "rebuild-fts": "rebuild_fts",
     "flomo-import": "flomo_import",
+    "import": "import_data",
 }
 
 _command_modules = {}
@@ -114,6 +118,9 @@ def _print_help_and_exit(exit_code=0):
     print("    link           link two memos")
     print("    unlink         unlink two memos")
     print("    links          view memo links")
+    print("    backup         backup SQLite database")
+    print("    export         export data as JSON")
+    print("    import         import JSON export")
     print("    image          generate share image")
     print("    rebuild-fts    rebuild search index")
     print("    flomo-import   import from flomo HTML")
@@ -163,6 +170,17 @@ def main(argv=None):
             print()
             _print_help_and_exit(2)
         raise
+
+    if args.cmd == "reset":
+        try:
+            return args.func(None, args) or 0
+        except (RuntimeError, ValueError) as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+
+    if args.cmd == "backup" and not get_db_path().exists():
+        print(f"database not found: {get_db_path()}", file=sys.stderr)
+        return 1
 
     conn = connect()
     try:

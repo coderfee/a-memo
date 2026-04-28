@@ -9,3 +9,6 @@ uv tool run ruff format --check .
 
 echo "running ty check"
 uv tool run ty check
+
+echo "running pytest"
+uv run --extra dev pytest

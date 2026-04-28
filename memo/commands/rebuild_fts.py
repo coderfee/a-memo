@@ -1,8 +1,6 @@
 """rebuild_fts 子命令"""
 
-import json
-
-from .. import render_memo_text
+from .. import rebuild_fts_index
 
 
 def add_parser(sub):
@@ -12,25 +10,10 @@ def add_parser(sub):
 
 
 def cmd_rebuild_fts(conn, args):
-    rows = conn.execute("SELECT id, content, tags FROM memos ORDER BY id").fetchall()
     try:
         with conn:
-            conn.execute("DELETE FROM memos_fts")
-            conn.executemany(
-                "INSERT INTO memos_fts(rowid, content) VALUES (?, ?)",
-                (
-                    (
-                        row["id"],
-                        render_memo_text(
-                            json.loads(row["tags"]) if row["tags"] else [],
-                            row["content"],
-                        ),
-                    )
-                    for row in rows
-                ),
-            )
-            conn.execute("INSERT INTO memos_fts(memos_fts) VALUES('optimize')")
+            count = rebuild_fts_index(conn)
     except Exception as exc:
         raise RuntimeError(f"failed to rebuild fts: {exc}") from exc
 
-    print(f"fts rebuilt ({len(rows)} memos indexed)")
+    print(f"fts rebuilt ({count} memos indexed)")

@@ -27,6 +27,23 @@ def positive_int(value):
     return parsed
 
 
+def _png_error_message(message):
+    lower = message.lower()
+    if "playwright" in lower and (
+        "modulenotfounderror" in lower or "no module named" in lower or "cannot import" in lower
+    ):
+        return (
+            "PNG generation requires the optional dependency. "
+            'Run: uv tool install --force "a-memo[png]"'
+        )
+    if "executable doesn't exist" in lower or "browser" in lower and "install" in lower:
+        return (
+            "PNG generation requires a Chromium-compatible browser. "
+            "Run: uv tool run playwright install chromium"
+        )
+    return message or "png generation failed"
+
+
 def cmd_image(conn, args):
     row = conn.execute("SELECT * FROM memos WHERE id=?", (args.id,)).fetchone()
     if not row:
@@ -78,7 +95,7 @@ def cmd_image(conn, args):
         )
         if proc.returncode != 0:
             message = proc.stderr.strip() or proc.stdout.strip() or "png generation failed"
-            raise RuntimeError(message)
+            raise RuntimeError(_png_error_message(message))
         print(proc.stdout.strip())
         return
 
