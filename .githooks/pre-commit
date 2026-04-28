@@ -1,0 +1,11 @@
+#!/bin/sh
+set -eu
+
+echo "running ruff lint"
+uv tool run ruff check .
+
+echo "running ruff format check"
+uv tool run ruff format --check .
+
+echo "running ty check"
+uv tool run ty check
