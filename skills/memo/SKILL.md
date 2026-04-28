@@ -1,192 +1,288 @@
 ---
 name: memo
 description: >
-  轻量 memo 工具，供 AI agent 使用。用于记录、检索、回顾和生成分享图。
+  Manage the local a-memo CLI for AI agents. Use when the user asks to save or
+  retrieve memos, search past notes, organize tags, link related memos, run review,
+  generate share images, import Flomo exports, backup/export/import data, or recover
+  memo data safely.
 ---
 
 # memo
 
-用于快速记录想法、摘录、日常碎片和待回顾内容。优先使用现有命令完成操作，避免改动脚本。
+Use `memo` to manage the user's local knowledge store safely. The success path is:
+understand intent, inspect existing context, make authorized changes, verify the result,
+and preserve recoverability for risky operations.
 
-## 操作权限
+## Safety Rules
 
-查询类操作可以直接执行：`list`、`search`、`tags`、`review`、`links`、`image`、`init`、`rebuild-fts`、`flomo-import --dry-run`。
+- Treat conversation as context. Write only when the user explicitly asks to save, update,
+  delete, tag, link, import, review-push, or reset memo data.
+- Query commands can run directly: `init`, `list`, `search`, `tags`, `review`, `links`,
+  `backup`, `export`, `image --format svg`, `flomo-import --dry-run`, `rebuild-fts`.
+- Write commands require explicit user intent: `add`, `update`, `delete`, `tag`, `link`,
+  `unlink`, `review --push`, `import`, formal `flomo-import`.
+- Destructive commands require explicit user intent and a backup: `reset --force`,
+  `import --replace`, batch delete, batch update.
+- After each write, verify with the narrowest useful command and report the concrete result.
+- If an operation fails after a backup, include the backup path in the response.
 
-写入类操作必须由用户显式指定后才能执行：`add`、`update`、`delete`、`tag`、`link`、`unlink`、`review --push`、正式导入 flomo。
-
-涉及数据破坏的操作必须由用户显式指定：`reset --force`。
-
-不要根据对话内容自动创建、删除或修改 memo。用户只是在表达想法、摘录内容或讨论文本时，只能回答或建议命令，不能代为写入。
-
-## 初始化
-
-首次使用或数据库异常时，直接运行 `memo init`（表会自动创建）。
-需要清空所有数据时，使用 `memo reset --force`。
-
-## 常用操作
-
-### 添加
+## Core Commands
 
 ```bash
-memo add “内容文字” #tag1 #tag2
-```
-
-内容里的 `#tag` 会作为标签保存；正文展示时保持干净。
-
-### 列表
-
-```bash
-memo list
-memo list #tag
+memo init
+memo add "content #tag"
 memo list --limit 20
+memo list "#tag"
+memo search "keyword"
+memo tags
+memo tag <id> "#tag"
+memo update <id> "new content #tag"
+memo delete <id>
+memo link <id1> <id2> --type related --note "why"
+memo links <id>
+memo unlink <id1> <id2>
+memo review --count 5
+memo review --count 1 --push
+memo image <id> --format svg
+memo image <id> --format png
+memo backup
+memo export --out memos.json
+memo import memos.json
+memo import memos.json --replace
+memo flomo-import export.html --dry-run
+memo flomo-import export.html
+memo rebuild-fts
+memo reset --force
 ```
 
-### 搜索
+## Standard Workflow
+
+1. Classify the request: query, save, edit, tag, link, review, import, export, recover, reset.
+2. Inspect context:
+   - Find a memo: `memo search "keyword"` or `memo list --limit 20`
+   - Check tags: `memo tags`
+   - Check relationships: `memo links <id>`
+3. Execute only the authorized command.
+4. Verify:
+   - Add/update/delete: `memo list --limit 3` or `memo search "keyword"`
+   - Tag: `memo list "#tag"` or `memo tags`
+   - Link/unlink: `memo links <id>`
+   - Import/export/restore: `memo list --limit 3`, `memo tags`, targeted `memo search`
+5. Report ids, tags, backup path, and verification result.
+
+## Add And Update
+
+Use `add` only when the user asks to record/save a memo:
 
 ```bash
-memo search “关键词”
+memo add "memo text #area/topic"
+memo list --limit 1
 ```
 
-### 回顾
+Tags inside content are extracted and lowercased. Body text is stored without the tag text.
+
+Use `update` when the user names an existing memo:
 
 ```bash
-memo review
-memo review --count 10
+memo update <id> "new content"
+memo update <id> "new content #newtag"
+```
+
+`update` keeps existing tags when no tags are supplied. It replaces tags when tags are supplied.
+
+## Search And Listing
+
+Use `search` for semantic or keyword lookup:
+
+```bash
+memo search "keyword"
+```
+
+Use `list` for recent items or tag-filtered views:
+
+```bash
+memo list --limit 20
+memo list "#area/topic"
+```
+
+When a user gives an id, verify it before destructive edits:
+
+```bash
+memo list --limit 20
+memo search "distinct phrase"
+```
+
+## Tags
+
+Use existing tag structure before inventing new labels:
+
+```bash
+memo tags
+memo tag <id> "#area/topic"
+```
+
+`tag` appends tags and deduplicates. For careful tagging:
+
+1. Run `memo tags`.
+2. Prefer existing hierarchy.
+3. Check related memos with `memo links <id>`.
+4. For batch tagging, show the plan and wait for user confirmation.
+
+## Links
+
+Relations are logically bidirectional:
+
+```bash
+memo link <id1> <id2>
+memo link <id1> <id2> --type supports --note "evidence"
+memo link <id1> <id2> --type contrasts --note "opposing case"
+memo links <id1>
+memo unlink <id1> <id2>
+```
+
+Relation types:
+
+- `related`: general connection
+- `supports`: one memo supports another
+- `contrasts`: two memos form a contrast
+
+Before linking, confirm both ids exist and choose the relation type. After linking, run
+`memo links <id>`.
+
+## Review
+
+```bash
+memo review --count 5
 memo review --count 1 --push
 ```
 
-定时任务默认使用 `memo review --count 1 --push`。
+`review` reads candidates. `review --push` records the review, increments `review_count`,
+updates `last_review_at`, and appends to `~/.memo/history/`.
 
-`review` 输出 JSON 数组，代码层面不做展示格式化。拿到 JSON 后按以下模板呈现给用户，注意换行和排版：
+Use `--push` when the user asks to perform a real review session. Format review output for the
+user:
 
 ```markdown
-### 📝 Memo 回顾 · #ID
+### Memo 回顾 · #ID
 
 #tag1 #tag2
 
-content xxx
+content
 
-📋 YYYY/MM/DD HH:mm(created_at) · 回顾 N 次
+YYYY/MM/DD HH:mm:ss · 回顾 N 次
 
 相关 memo：
 - #ID relation_type：#tag content
 ```
 
-`links` 为空时省略”相关 memo”区块。
+Omit the related memo section when no links exist.
 
-每次 `memo review --push` 有结果时，会追加写入 `~/.memo/history/yyyy-mm-dd.md`：
+## Backup, Export, Import, Recovery
 
-```markdown
-HH:mm
-#tag memo
----
-```
-
-需要生成分享图时，使用 JSON 里的 `id`。
-
-### 分享图
+Use backups before risky work:
 
 ```bash
-memo image <编号> --format png
-memo image <编号> --format svg
+memo backup
+memo export --out memos.json
+memo import memos.json
+memo import memos.json --replace
 ```
 
-优先生成 PNG。默认保存到 `~/.memo/images/`。
+Guidance:
 
-### 删除
+- `backup` creates a SQLite backup.
+- `export` creates portable JSON.
+- `import` appends data and remaps links.
+- `import --replace` replaces current data and creates an automatic backup.
+- After import or recovery, verify with `list`, `tags`, and a targeted `search`.
+
+Migration to another machine:
 
 ```bash
-memo delete <编号>
+memo export --out memos.json
+# copy memos.json to the new machine
+memo import memos.json --replace
 ```
 
-### 更新
+## Images
+
+SVG is the reliable fallback:
 
 ```bash
-memo update <编号> “新的内容”
-memo update <编号> “新的内容 #tag”
+memo image <id> --format svg
 ```
 
-更新内容里带标签时会同步更新标签；没有标签时保留原标签。
-
-### 标签
+PNG requires the optional dependency and a browser:
 
 ```bash
+uv tool install --force "a-memo[png]"
+uv tool run playwright install chromium
+memo image <id> --format png
+```
+
+If PNG fails, report the actionable install command from the error and generate SVG.
+
+## Flomo Import
+
+Always preview first:
+
+```bash
+memo flomo-import export.html --dry-run
+```
+
+When the user confirms:
+
+```bash
+memo backup
+memo flomo-import export.html
+memo list --limit 5
 memo tags
-memo tag <编号> #newtag
 ```
 
-### 标签策略
+Report parsed/imported/skipped/failed counts.
 
-当用户想给一条 memo 精心挑选标签时，按以下步骤操作：
+## Maintenance
 
-1. **先看全局标签**：`memo list --limit 500` 列出所有 memo，从中提取用户已有的标签体系
-2. **建议符合层级的标签**：优先推荐与现有层级一致的嵌套标签（如 `#area/心理认知/当下`），避免凭空创建新的顶层标签
-3. **加完检查关联 memo**：如果该 memo 有 `link` 关联的其他 memo，主动询问是否要给关联 memo 也加上同样的标签，保持语义一致性
-
-`tag` 命令每次会**替换**全部标签，不是追加。如果要保留旧标签，必须一并传入。
-
-关联为逻辑双向关系。底层只保存一条关系，查看任意一端都会显示另一端。
-
-```bash
-memo link <编号1> <编号2>
-memo link <编号1> <编号2> --type supports --note “提供案例”
-memo links <编号>
-memo unlink <编号1> <编号2>
-```
-
-关联类型：
-
-- `related`：普通相关，默认值
-- `supports`：一条 memo 支撑另一条 memo
-- `contrasts`：两条 memo 形成对照
-
-当用户在飞书中说”把这条和 #23 关联””#12 支撑 #45””删除 #12 和 #45 的关联”时，先确认当前 memo 编号可用，再执行对应命令。
-
-### 导入 flomo
-
-```bash
-memo flomo-import <flomo.html>
-memo flomo-import <flomo.html> --dry-run
-```
-
-导入前可用 `--dry-run` 预览结果；确认后再正式导入。
-
-## 排错
-
-### 搜索结果异常
-
-先重建搜索索引：
+Search index issue:
 
 ```bash
 memo rebuild-fts
+memo search "keyword"
 ```
 
-### 分享图生成失败
-
-优先使用 PNG。PNG 失败时再生成 SVG 作为替代：
+Full reset:
 
 ```bash
-memo image <编号> --format png
-memo image <编号> --format svg
+memo reset --force
 ```
 
-PNG 需要本机可用的 Chrome 和 `uv`。缺少环境时，向用户说明 PNG 生成依赖未就绪，并提供 SVG 文件。
+Use reset only when the user asks to delete all memo data. The command creates an automatic
+backup when a database exists. Report the backup path.
 
-### 导入结果不符合预期
+## Response Templates
 
-先用 dry-run 预览：
+Write completed:
 
-```bash
-memo flomo-import <flomo.html> --dry-run
+```markdown
+已完成：<action>
+- memo：#ID
+- 标签：#tag
+- 验证：<command/result>
 ```
 
-确认解析数量和内容后再正式导入。
+Backup/import/recovery completed:
 
-### 找不到 memo
+```markdown
+已完成：<action>
+- 备份：<path>
+- 数据：N 条 memo
+- 验证：list/search/tags 正常
+```
 
-先用列表或搜索确认编号：
+Failed safely:
 
-```bash
-memo list --limit 20
-memo search “关键词”
+```markdown
+操作未完成：<reason>
+数据保护：<backup path or status>
+建议下一步：<specific command>
 ```
