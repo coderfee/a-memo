@@ -2,6 +2,9 @@
 
 A lightweight memo CLI tool with SQLite + FTS5, supporting tags, links, review, and share image generation.
 
+[![PyPI version](https://img.shields.io/pypi/v/memo-cli)](https://pypi.org/project/memo-cli/)
+[![GitHub](https://img.shields.io/github/license/coderfee/memo-cli)](https://github.com/coderfee/memo-cli)
+
 ## Install
 
 ```bash
