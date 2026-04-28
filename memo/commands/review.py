@@ -5,6 +5,7 @@ import time
 
 from .. import (
     connect,
+    fmt_time,
     linked_memos_for,
     history_file_path,
     get_history_dir,
@@ -120,8 +121,8 @@ def cmd_review(conn, args):
             "id": row["id"],
             "content": row["content"].strip(),
             "tags": tags,
-            "created_at": row["created_at"],
-            "updated_at": row["updated_at"],
+            "created_at": fmt_time(row["created_at"]) if row["created_at"] else None,
+            "updated_at": fmt_time(row["updated_at"]) if row["updated_at"] else None,
             "review_count": row["review_count"] or 0,
             "links": linked_memos_for(conn, row["id"]),
         })
