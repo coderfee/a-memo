@@ -1,10 +1,11 @@
 """生成 memo PNG 分享图（Playwright + Chrome）"""
+
 import argparse
 import asyncio
 import json
 import shutil
 import sqlite3
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from html import escape
 from pathlib import Path
 
@@ -64,21 +65,27 @@ def load_memo(db_path, memo_id):
 
 def render_html(row, total_memos):
     tags = json.loads(row["tags"]) if row["tags"] else []
-    tag_html = "\n".join(
-        f'<span class="tag">#{escape(tag.lstrip("#"))}</span>' for tag in tags
-    )
+    tag_html = "\n".join(f'<span class="tag">#{escape(tag.lstrip("#"))}</span>' for tag in tags)
     if not tag_html:
         tag_html = '<span class="tag">memo</span>'
 
     regular_font = font_uri("regular")
     medium_font = font_uri("medium") or regular_font
     regular_face = (
-        f'@font-face {{ font-family: "MemoWenKai"; src: url("{regular_font}") format("truetype"); font-weight: 400; }}'
-        if regular_font else ""
+        (
+            f'@font-face {{ font-family: "MemoWenKai"; src: url("{regular_font}") '
+            'format("truetype"); font-weight: 400; }'
+        )
+        if regular_font
+        else ""
     )
     medium_face = (
-        f'@font-face {{ font-family: "MemoWenKai"; src: url("{medium_font}") format("truetype"); font-weight: 500; }}'
-        if medium_font else ""
+        (
+            f'@font-face {{ font-family: "MemoWenKai"; src: url("{medium_font}") '
+            'format("truetype"); font-weight: 500; }'
+        )
+        if medium_font
+        else ""
     )
 
     content = escape(row["content"].strip())

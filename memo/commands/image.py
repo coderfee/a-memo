@@ -1,9 +1,11 @@
 """image 子命令 — 生成 memo 分享图"""
+
 import argparse
 import subprocess
+import sys
 from pathlib import Path
 
-from .. import connect, render_share_svg, get_images_dir
+from .. import get_images_dir, render_share_svg
 
 
 def add_parser(sub):
@@ -57,14 +59,11 @@ def cmd_image(conn, args):
         if not out.suffix:
             out = out.with_suffix(".png")
 
-        import sys
-        from importlib.resources import files
-        script = Path(files("memo") / "share_image.py")
         proc = subprocess.run(
             [
-                "uv",
-                "run",
-                str(script),
+                sys.executable,
+                "-m",
+                "memo.share_image",
                 "--db",
                 str(conn.execute("PRAGMA database_list").fetchone()["file"]),
                 "--id",

@@ -1,8 +1,9 @@
 """list 子命令"""
+
 import argparse
 import json
 
-from .. import connect, fmt_time
+from .. import fmt_time
 
 
 def add_parser(sub):

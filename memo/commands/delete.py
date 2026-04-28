@@ -1,7 +1,6 @@
 """delete 子命令"""
-import argparse
 
-from .. import connect
+import argparse
 
 
 def add_parser(sub):

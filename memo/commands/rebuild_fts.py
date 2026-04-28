@@ -1,7 +1,8 @@
 """rebuild_fts 子命令"""
+
 import json
 
-from .. import connect, render_memo_text
+from .. import render_memo_text
 
 
 def add_parser(sub):

@@ -1,13 +1,24 @@
 """flomo_import 子命令 — 从 flomo HTML 导出文件导入"""
-import argparse
+
 import json
 import re
 import sys
 import time
 from html.parser import HTMLParser
 from pathlib import Path
+from typing import TypedDict
 
-from .. import connect, split_tags_and_content, render_memo_text
+from .. import render_memo_text, split_tags_and_content
+
+
+class ParsedMemo(TypedDict):
+    time: str
+    content: str
+
+
+class CurrentMemo(TypedDict):
+    time: str
+    content: list[str]
 
 
 def add_parser(sub):
@@ -21,10 +32,10 @@ def add_parser(sub):
 class FlomoHTMLParser(HTMLParser):
     def __init__(self):
         super().__init__(convert_charrefs=True)
-        self.memos = []
+        self.memos: list[ParsedMemo] = []
         self.memo_depth = 0
-        self.current = None
-        self.field = None
+        self.current: CurrentMemo | None = None
+        self.field: str | None = None
         self.field_depth = 0
 
     def handle_starttag(self, tag, attrs):
@@ -79,10 +90,12 @@ class FlomoHTMLParser(HTMLParser):
             self._append_content(data)
 
     def _append_content(self, text):
+        if self.current is None:
+            return
         self.current["content"].append(text)
 
 
-def _clean_text(text):
+def _clean_text(text: str) -> str:
     text = text.replace("\xa0", " ")
     text = re.sub(r"[ \t\r\f\v]+", " ", text)
     text = re.sub(r" *\n *", "\n", text)
@@ -90,7 +103,7 @@ def _clean_text(text):
     return text.strip()
 
 
-def parse_html(path):
+def parse_html(path) -> list[ParsedMemo]:
     parser = FlomoHTMLParser()
     parser.feed(Path(path).read_text(encoding="utf-8"))
     parser.close()
@@ -130,7 +143,9 @@ def cmd_flomo_import(conn, args):
             if not content:
                 skipped += 1
                 continue
-            print(f"[dry] {memo['time']} | {render_memo_text(tags, content)[:50]}... | tags: {tags}")
+            print(
+                f"[dry] {memo['time']} | {render_memo_text(tags, content)[:50]}... | tags: {tags}"
+            )
             imported += 1
         print(f"\nimported {imported}, skipped {skipped}, failed {failed}")
         print("(dry-run: no data written)")
@@ -148,7 +163,10 @@ def cmd_flomo_import(conn, args):
             ts = parse_datetime(memo["time"])
             with conn:
                 cur = conn.execute(
-                    "INSERT INTO memos (content, tags, created_at, source) VALUES (?, ?, ?, 'flomo')",
+                    """
+                    INSERT INTO memos (content, tags, created_at, source)
+                    VALUES (?, ?, ?, 'flomo')
+                    """,
                     (content, json.dumps(tags, ensure_ascii=False), ts),
                 )
                 conn.execute(

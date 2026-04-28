@@ -1,7 +1,8 @@
 """reset 子命令 — 重置数据目录"""
+
 import shutil
 
-from .. import get_data_dir, warn
+from .. import get_data_dir
 
 
 def add_parser(sub):

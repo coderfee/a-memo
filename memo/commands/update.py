@@ -1,9 +1,10 @@
 """update 子命令"""
+
 import argparse
 import json
 import time
 
-from .. import connect, render_memo_text, split_tags_and_content
+from .. import render_memo_text, split_tags_and_content
 
 
 def add_parser(sub):
@@ -55,4 +56,4 @@ def cmd_update(conn, args):
 
     print(f"updated #{args.id}")
     if tags:
-        print(f"tags: {' '.join('#'+t.lstrip('#') for t in tags)}")
+        print(f"tags: {' '.join('#' + t.lstrip('#') for t in tags)}")

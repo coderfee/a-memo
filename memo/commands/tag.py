@@ -1,9 +1,10 @@
 """tag 子命令"""
+
 import argparse
 import json
 import time
 
-from .. import connect, parse_tags, render_memo_text
+from .. import parse_tags, render_memo_text
 
 
 def add_parser(sub):
@@ -45,4 +46,4 @@ def cmd_tag(conn, args):
             "INSERT OR REPLACE INTO memos_fts(rowid, content) VALUES (?, ?)",
             (args.id, render_memo_text(merged, row["content"])),
         )
-    print(f"tagged #{args.id}: {' '.join('#'+t.lstrip('#') for t in merged)}")
+    print(f"tagged #{args.id}: {' '.join('#' + t.lstrip('#') for t in merged)}")

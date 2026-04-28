@@ -1,14 +1,17 @@
 """review 子命令"""
+
 import argparse
 import json
+import os
 import time
 
 from .. import (
-    connect,
+    choose_review_layer,
+    fmt_history_time,
     fmt_time,
-    linked_memos_for,
-    history_file_path,
     get_history_dir,
+    history_file_path,
+    linked_memos_for,
     render_memo_text,
 )
 
@@ -74,11 +77,10 @@ def _layer_bounds(layer):
 def _fallback_layers(layer):
     order = ("fresh", "middle", "old")
     idx = order.index(layer) if layer in order else -1
-    return (*order[idx+1:], *order[:idx+1])
+    return (*order[idx + 1 :], *order[: idx + 1])
 
 
 def select_single_review_row(conn):
-    from ..helpers import choose_review_layer
     selected = choose_review_layer()
     for layer in (selected, *_fallback_layers(selected)):
         row = select_review_row_from_layer(conn, layer)
@@ -92,7 +94,8 @@ def cmd_review(conn, args):
         row = select_single_review_row(conn)
         rows = [row] if row else []
     else:
-        rows = conn.execute("""
+        rows = conn.execute(
+            """
           WITH eligible AS (
             SELECT *, COALESCE(last_review_at, created_at) as sort_time
             FROM memos
@@ -106,7 +109,9 @@ def cmd_review(conn, args):
           )
           SELECT id, content, tags, created_at, updated_at, review_count
           FROM weighted ORDER BY weight DESC LIMIT ?
-        """, (args.count,)).fetchall()
+        """,
+            (args.count,),
+        ).fetchall()
 
     if not rows:
         print("[]")
@@ -117,15 +122,17 @@ def cmd_review(conn, args):
     result = []
     for row in rows:
         tags = json.loads(row["tags"]) if row["tags"] else []
-        result.append({
-            "id": row["id"],
-            "content": row["content"].strip(),
-            "tags": tags,
-            "created_at": fmt_time(row["created_at"]) if row["created_at"] else None,
-            "updated_at": fmt_time(row["updated_at"]) if row["updated_at"] else None,
-            "review_count": row["review_count"] or 0,
-            "links": linked_memos_for(conn, row["id"]),
-        })
+        result.append(
+            {
+                "id": row["id"],
+                "content": row["content"].strip(),
+                "tags": tags,
+                "created_at": fmt_time(row["created_at"]) if row["created_at"] else None,
+                "updated_at": fmt_time(row["updated_at"]) if row["updated_at"] else None,
+                "review_count": row["review_count"] or 0,
+                "links": linked_memos_for(conn, row["id"]),
+            }
+        )
 
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
@@ -135,7 +142,11 @@ def cmd_review(conn, args):
         placeholders = ",".join("?" * len(ids))
         with conn:
             conn.execute(
-                f"UPDATE memos SET review_count=review_count+1, last_review_at=? WHERE id IN ({placeholders})",
+                f"""
+                UPDATE memos
+                SET review_count=review_count+1, last_review_at=?
+                WHERE id IN ({placeholders})
+                """,
                 [now] + ids,
             )
 
@@ -148,7 +159,6 @@ def _append_history(rows, reviewed_at=None):
     history_dir.mkdir(parents=True, exist_ok=True)
     out = history_file_path(reviewed_at, history_dir)
 
-    from .. import fmt_history_time
     entries = []
     for row in rows:
         tags = json.loads(row["tags"]) if row["tags"] else []
@@ -164,6 +174,3 @@ def _append_history(rows, reviewed_at=None):
 
     with out.open("a", encoding="utf-8") as fh:
         fh.write(prefix + "\n".join(entries) + "\n")
-
-
-import os

@@ -1,5 +1,4 @@
 """init 子命令"""
-from .. import connect
 
 
 def add_parser(sub):

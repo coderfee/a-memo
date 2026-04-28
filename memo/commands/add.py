@@ -1,8 +1,9 @@
 """add 子命令"""
+
 import json
 import time
 
-from .. import connect, parse_tags, render_memo_text, split_tags_and_content
+from .. import render_memo_text, split_tags_and_content
 
 
 def add_parser(sub):
@@ -37,4 +38,4 @@ def cmd_add(conn, args):
 
     print(f"created #{cur.lastrowid}")
     if tags:
-        print(f"tags: {' '.join('#'+t.lstrip('#') for t in tags)}")
+        print(f"tags: {' '.join('#' + t.lstrip('#') for t in tags)}")

@@ -1,16 +1,14 @@
 """共用的格式化、解析、渲染工具函数"""
+
 import json
-import os
 import random
 import re
-import time
 import unicodedata
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from html import escape
-from pathlib import Path
 
 TZ_BJ = timezone(timedelta(hours=8))
-TAG_PATTERN = r'#[\w一-鿿][\w一-鿿.-]*(?:/[\w一-鿿][\w一-鿿.-]*)*'
+TAG_PATTERN = r"#[\w一-鿿][\w一-鿿.-]*(?:/[\w一-鿿][\w一-鿿.-]*)*"
 
 KAMI_PARCHMENT = "#f5f4ed"
 KAMI_IVORY = "#faf9f5"
@@ -31,6 +29,7 @@ REVIEW_FALLBACK_LAYERS = ("old", "middle", "fresh")
 
 
 # ── tags ──────────────────────────────────────────────────────────────────────
+
 
 def parse_tags(text):
     tags = re.findall(TAG_PATTERN, text, re.UNICODE)
@@ -61,6 +60,7 @@ def render_memo_text(tags, content):
 
 # ── time ──────────────────────────────────────────────────────────────────────
 
+
 def fmt_time(ts):
     dt = datetime.fromtimestamp(ts, TZ_BJ)
     return f"{dt.year}/{dt.month:02d}/{dt.day:02d} {dt.hour:02d}:{dt.minute:02d}:{dt.second:02d}"
@@ -84,6 +84,7 @@ def history_file_path(ts, history_dir):
 
 
 # ── text wrap ─────────────────────────────────────────────────────────────────
+
 
 def text_units(text):
     total = 0
@@ -120,6 +121,7 @@ def wrap_text(text, max_units):
 
 
 # ── SVG rendering ─────────────────────────────────────────────────────────────
+
 
 def svg_text_line(text, x, y, size, fill="#171717", weight=400):
     return (
@@ -194,9 +196,19 @@ def render_share_svg(row, total_memos, width=900):
 
     y = margin_top
     elements = [
-        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
+        (
+            f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+            f'viewBox="0 0 {width} {height}">'
+        ),
         svg_rect(0, 0, "100%", "100%", KAMI_PARCHMENT),
-        svg_rect(card_margin, card_margin, width - card_margin * 2, height - card_margin * 2, KAMI_IVORY, radius=16),
+        svg_rect(
+            card_margin,
+            card_margin,
+            width - card_margin * 2,
+            height - card_margin * 2,
+            KAMI_IVORY,
+            radius=16,
+        ),
     ]
 
     if chip_rows:
@@ -217,15 +229,20 @@ def render_share_svg(row, total_memos, width=900):
         elements.append(svg_text_line(line, content_x, y, 40, KAMI_NEAR_BLACK, 500))
         y += content_line_height
 
-    elements.append(svg_text_line(f"创建于：{created_at}", content_x, footer_y, 23, KAMI_STONE, 400))
+    elements.append(
+        svg_text_line(f"创建于：{created_at}", content_x, footer_y, 23, KAMI_STONE, 400)
+    )
     brand_text = f"{total_memos} memos"
     brand_width = 10 + text_units(brand_text) * 23 * 0.48
-    elements.append(svg_text_line(brand_text, width - margin_x - brand_width, footer_y, 23, KAMI_INK, 600))
+    elements.append(
+        svg_text_line(brand_text, width - margin_x - brand_width, footer_y, 23, KAMI_INK, 600)
+    )
     elements.append("</svg>")
     return "\n".join(elements)
 
 
 # ── review ─────────────────────────────────────────────────────────────────────
+
 
 def choose_review_layer():
     roll = random.random()
@@ -249,6 +266,7 @@ def review_layer_bounds(layer):
 
 # ── search ────────────────────────────────────────────────────────────────────
 
+
 def fts_query(text):
     tokens = re.findall(r"[\w一-鿿]+", text.lower(), re.UNICODE)
     escaped = [token.replace('"', '""') for token in tokens]
@@ -256,6 +274,7 @@ def fts_query(text):
 
 
 # ── link ──────────────────────────────────────────────────────────────────────
+
 
 def normalize_link_ids(left_id, right_id):
     if left_id == right_id:

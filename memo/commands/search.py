@@ -1,8 +1,9 @@
 """search 子命令"""
+
 import argparse
 import json
 
-from .. import connect, fts_query, fmt_time, warn
+from .. import fmt_time, fts_query, warn
 
 
 def add_parser(sub):
@@ -32,12 +33,15 @@ def cmd_search(conn, args):
     q = fts_query(query)
     if q:
         try:
-            rows = conn.execute("""
+            rows = conn.execute(
+                """
                 SELECT m.* FROM memos m
                 JOIN memos_fts f ON m.id = f.rowid
                 WHERE memos_fts MATCH ?
                 ORDER BY rank LIMIT ?
-            """, (q, args.limit)).fetchall()
+            """,
+                (q, args.limit),
+            ).fetchall()
         except Exception as exc:
             warn(f"fts search failed, falling back to like: {exc}")
 

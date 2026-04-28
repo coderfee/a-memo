@@ -1,7 +1,8 @@
 """tags 子命令"""
+
 import json
 
-from .. import connect, warn
+from .. import warn
 
 
 def add_parser(sub):

@@ -1,8 +1,9 @@
 """link 子命令"""
+
 import argparse
 import time
 
-from .. import connect, normalize_link_ids, validate_relation_type, require_memos, clean_content
+from .. import clean_content, normalize_link_ids, require_memos, validate_relation_type
 
 
 def add_parser(sub):

@@ -1,8 +1,9 @@
 """links 子命令"""
+
 import argparse
 import json
 
-from .. import connect, linked_memos_for, require_memos
+from .. import linked_memos_for, require_memos
 
 
 def add_parser(sub):

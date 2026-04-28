@@ -1,8 +1,8 @@
 """unlink 子命令"""
-import argparse
-import time
 
-from .. import connect, normalize_link_ids, validate_relation_type
+import argparse
+
+from .. import normalize_link_ids, validate_relation_type
 
 
 def add_parser(sub):
