@@ -1,4 +1,5 @@
 """memo CLI 入口"""
+
 import argparse
 import sys
 
@@ -8,6 +9,7 @@ from . import connect
 def _get_version():
     try:
         from importlib.metadata import version
+
         return version("a-memo")
     except Exception:
         return "0.1.0"
@@ -92,7 +94,7 @@ def _suggest(cmd):
     return best, best_dist
 
 
-def _print_help_and_exit():
+def _print_help_and_exit(exit_code=0):
     print("memo — lightweight memo CLI for AI agents")
     print()
     print("USAGE:")
@@ -121,7 +123,7 @@ def _print_help_and_exit():
     print("    -v, --version  show version")
     print()
     print("more: memo <command> --help")
-    sys.exit(0)
+    sys.exit(exit_code)
 
 
 def _print_version_and_exit():
@@ -159,18 +161,17 @@ def main(argv=None):
             if dist <= 3:
                 print(f"       did you mean '{suggestion}'?", file=sys.stderr)
             print()
-            _print_help_and_exit()
+            _print_help_and_exit(2)
         raise
 
     conn = connect()
     try:
-        args.func(conn, args)
+        return args.func(conn, args) or 0
     except (RuntimeError, ValueError) as exc:
         print(str(exc), file=sys.stderr)
         return 1
     finally:
         conn.close()
-    return 0
 
 
 if __name__ == "__main__":
