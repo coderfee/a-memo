@@ -1,20 +1,20 @@
-# memo-cli
+# a-memo
 
-A lightweight memo CLI tool with SQLite + FTS5, supporting tags, links, review, and share image generation.
+A lightweight memo CLI tool for AI agents with SQLite + FTS5, supporting tags, links, review, and share image generation.
 
-[![PyPI version](https://img.shields.io/pypi/v/memo-cli)](https://pypi.org/project/memo-cli/)
-[![GitHub](https://img.shields.io/github/license/coderfee/memo-cli)](https://github.com/coderfee/memo-cli)
+[![PyPI version](https://img.shields.io/pypi/v/a-memo)](https://pypi.org/project/a-memo/)
+[![GitHub](https://img.shields.io/github/license/coderfee/a-memo)](https://github.com/coderfee/a-memo)
 
 ## Install
 
 ```bash
-pip install memo-cli
+pip install a-memo
 ```
 
 Or with uv:
 
 ```bash
-uv tool install memo-cli
+uv tool install a-memo
 ```
 
 ## Usage

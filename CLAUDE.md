@@ -1,6 +1,6 @@
-# memo-cli
+# a-memo
 
-Lightweight memo CLI tool with SQLite + FTS5.
+Lightweight memo CLI tool for AI agents with SQLite + FTS5.
 
 ## Install
 

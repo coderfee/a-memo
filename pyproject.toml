@@ -1,5 +1,5 @@
 [project]
-name = "memo-cli"
+name = "a-memo"
 version = "0.1.0"
 description = "Lightweight memo CLI tool with SQLite + FTS5"
 readme = "README.md"
@@ -20,11 +20,11 @@ png = ["playwright"]
 dev = ["pytest"]
 
 [project.scripts]
-memo = "memo.cli:main"
+memoi = "memoi.cli:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["memo"]
+packages = ["memoi"]
