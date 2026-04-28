@@ -7,7 +7,7 @@ requires-python = ">=3.11"
 dependencies = []
 keywords = ["memo", "note", "cli", "sqlite", "fts"]
 authors = [{name = "coderfee", email = "ddc@coderfee.com"}]
-license = {text = "MIT"}
+license = "MIT"
 classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3.11",
@@ -20,7 +20,7 @@ png = ["playwright"]
 dev = ["pytest"]
 
 [project.scripts]
-memoi = "memoi.cli:main"
+memo = "memoi.cli:main"
 
 [build-system]
 requires = ["hatchling"]
