@@ -1,11 +1,10 @@
 import json
 import sqlite3
-import sys
 import time
-from types import SimpleNamespace
 
 import pytest
 from memo import cli
+from PIL import Image
 
 
 @pytest.fixture
@@ -184,69 +183,29 @@ def test_review_empty_when_no_eligible_memos(data_dir, capsys):
     assert (code, out.strip(), err) == (0, "[]", "")
 
 
-def test_image_svg_and_png_subprocess_path(data_dir, tmp_path, monkeypatch, capsys):
+def test_image_png_rendering(data_dir, tmp_path, capsys):
     run_cli(["add", "shareable memo", "#img"], capsys)
 
-    svg_path = tmp_path / "share.svg"
-    code, out, err = run_cli(["image", "1", "--format", "svg", "--out", str(svg_path)], capsys)
-    assert code == 0
-    assert err == ""
-    assert out.strip() == f"saved: {svg_path}"
-    assert "<svg" in svg_path.read_text(encoding="utf-8")
-
-    calls = []
-
-    def fake_run(cmd, text, capture_output):
-        calls.append(
-            {
-                "cmd": cmd,
-                "text": text,
-                "capture_output": capture_output,
-            }
-        )
-        return SimpleNamespace(returncode=0, stdout="saved: fake.png\n", stderr="")
-
-    import memo.commands.image as image_command
-
-    monkeypatch.setattr(image_command.subprocess, "run", fake_run)
     png_path = tmp_path / "share.png"
-    code, out, err = run_cli(["image", "1", "--format", "png", "--out", str(png_path)], capsys)
+    code, out, err = run_cli(["image", "1", "--out", str(png_path)], capsys)
     assert code == 0
     assert err == ""
-    assert out.strip() == "saved: fake.png"
-    assert calls[0]["cmd"][:3] == [sys.executable, "-m", "memo.share_image"]
-    assert calls[0]["text"] is True
-    assert calls[0]["capture_output"] is True
+    assert out.strip() == f"saved: {png_path}"
+    assert png_path.read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
+    with Image.open(png_path) as image:
+        assert image.size[0] == 600
+        assert image.size[1] > 0
 
-    def fake_missing_playwright(cmd, text, capture_output):
-        return SimpleNamespace(
-            returncode=1,
-            stdout="",
-            stderr="ModuleNotFoundError: No module named 'playwright'",
-        )
+    extensionless_path = tmp_path / "share-extensionless"
+    code, out, err = run_cli(["image", "1", "--out", str(extensionless_path)], capsys)
+    assert code == 0
+    assert err == ""
+    assert out.strip() == f"saved: {extensionless_path.with_suffix('.png')}"
+    assert extensionless_path.with_suffix(".png").exists()
 
-    monkeypatch.setattr(image_command.subprocess, "run", fake_missing_playwright)
-    code, _, err = run_cli(["image", "1", "--format", "png", "--out", str(png_path)], capsys)
+    code, _, err = run_cli(["image", "1", "--out", str(tmp_path / "bad.svg")], capsys)
     assert code == 1
-    assert 'uv tool install --force "a-memo[png]"' in err
-
-    def fake_missing_browser(cmd, text, capture_output):
-        return SimpleNamespace(
-            returncode=1,
-            stdout="",
-            stderr="Browser executable doesn't exist. Please run playwright install",
-        )
-
-    monkeypatch.setattr(image_command.subprocess, "run", fake_missing_browser)
-    code, _, err = run_cli(["image", "1", "--format", "png", "--out", str(png_path)], capsys)
-    assert code == 1
-    assert "uv tool run playwright install chromium" in err
-
-    code, _, err = run_cli(
-        ["image", "1", "--format", "svg", "--out", str(tmp_path / "bad.png")], capsys
-    )
-    assert code == 1
-    assert "svg output requires .svg extension" in err
+    assert "image output requires .png extension" in err
 
 
 def test_flomo_import_dry_run_success_and_failures(data_dir, tmp_path, capsys):

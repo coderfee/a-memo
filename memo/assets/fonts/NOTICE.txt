@@ -1,0 +1,13 @@
+LXGW WenKai bundled fonts
+
+Files:
+- LXGWWenKai-Regular.ttf
+- LXGWWenKai-Medium.ttf
+
+Copyright:
+- Copyright 2021-2024 LXGW (https://github.com/lxgw/LxgwWenKai)
+- Copyright 2020 The Klee Project Authors (https://github.com/fontworks-fonts/Klee)
+
+License:
+These font files are licensed under the SIL Open Font License, Version 1.1.
+See OFL.txt in this directory.

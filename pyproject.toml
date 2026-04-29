@@ -1,10 +1,10 @@
 [project]
 name = "a-memo"
-version = "1.2.0"
+version = "1.3.0"
 description = "Lightweight memo CLI tool with SQLite + FTS5"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = ["pillow"]
 keywords = ["memo", "note", "cli", "sqlite", "fts"]
 authors = [{name = "coderfee", email = "ddc@coderfee.com"}]
 license = "MIT"
@@ -16,7 +16,6 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-png = ["playwright"]
 dev = ["pytest"]
 
 [project.scripts]

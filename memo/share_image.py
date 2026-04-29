@@ -1,224 +1,243 @@
-"""生成 memo PNG 分享图（Playwright + Chrome）"""
+"""Render memo share images as PNG."""
 
-import argparse
-import asyncio
 import json
-import shutil
-import sqlite3
-from datetime import datetime, timedelta, timezone
-from html import escape
 from pathlib import Path
 
-from playwright.async_api import async_playwright
+from .helpers import (
+    KAMI_INK,
+    KAMI_IVORY,
+    KAMI_NEAR_BLACK,
+    KAMI_PARCHMENT,
+    KAMI_STONE,
+    KAMI_TAG_BG,
+    fmt_datetime,
+    text_units,
+)
 
-TZ_BJ = timezone(timedelta(hours=8))
+
+def _load_pillow():
+    from PIL import Image, ImageDraw, ImageFont
+
+    return Image, ImageDraw, ImageFont
 
 
-def fmt_datetime(ts):
-    dt = datetime.fromtimestamp(ts, TZ_BJ)
-    return f"{dt.year}/{dt.month:02d}/{dt.day:02d} {dt.hour:02d}:{dt.minute:02d}:{dt.second:02d}"
-
-
-def font_uri(weight="regular"):
+def _font_paths(weight):
+    bundled_fonts = Path(__file__).resolve().parent / "assets" / "fonts"
     home_fonts = Path.home() / "Library" / "Fonts"
     if weight == "medium":
-        candidates = [
+        return [
+            bundled_fonts / "LXGWWenKai-Medium.ttf",
             home_fonts / "LXGWWenKai-Medium.ttf",
             home_fonts / "LXGWWenKaiMono-Medium.ttf",
+            "/System/Library/Fonts/Hiragino Sans GB.ttc",
+            "/System/Library/Fonts/STHeiti Medium.ttc",
+            "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+            "/usr/share/fonts/opentype/noto/NotoSerifCJK-Regular.ttc",
+            "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
+            "/usr/share/fonts/truetype/noto/NotoSerifCJK-Regular.ttc",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
         ]
-    else:
-        candidates = [
-            home_fonts / "LXGWWenKai-Regular.ttf",
-            home_fonts / "LXGWWenKai-Light.ttf",
-            home_fonts / "LXGWWenKaiMono-Regular.ttf",
-        ]
-    for path in candidates:
-        if path.exists():
-            return path.resolve().as_uri()
-    return ""
-
-
-def chrome_executable():
-    candidates = [
-        shutil.which("google-chrome"),
-        shutil.which("chromium"),
-        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-        "/Applications/Chromium.app/Contents/MacOS/Chromium",
+    return [
+        bundled_fonts / "LXGWWenKai-Regular.ttf",
+        home_fonts / "LXGWWenKai-Regular.ttf",
+        home_fonts / "LXGWWenKaiMono-Regular.ttf",
+        "/System/Library/Fonts/Hiragino Sans GB.ttc",
+        "/System/Library/Fonts/STHeiti Light.ttc",
+        "/System/Library/Fonts/Supplemental/Songti.ttc",
+        "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+        "/usr/share/fonts/opentype/noto/NotoSerifCJK-Regular.ttc",
+        "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
+        "/usr/share/fonts/truetype/noto/NotoSerifCJK-Regular.ttc",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
     ]
-    for candidate in candidates:
-        if candidate and Path(candidate).exists():
-            return candidate
-    return None
 
 
-def load_memo(db_path, memo_id):
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
-    try:
-        row = conn.execute("SELECT * FROM memos WHERE id=?", (memo_id,)).fetchone()
-    finally:
-        conn.close()
-    if not row:
-        raise SystemExit(f"memo #{memo_id} 不存在")
-    return row
+def _font(font_module, size, weight="regular"):
+    for path in _font_paths(weight):
+        candidate = Path(path)
+        if candidate.exists():
+            return font_module.truetype(str(candidate), size=size)
+    return font_module.load_default(size=size)
 
 
-def render_html(row, total_memos):
+def _text_size(draw, text, font):
+    bbox = draw.textbbox((0, 0), text, font=font)
+    return bbox[2] - bbox[0], bbox[3] - bbox[1]
+
+
+def _draw_text_top(draw, xy, text, font, fill):
+    x, top = xy
+    bbox = draw.textbbox((0, 0), text, font=font)
+    draw.text((x - bbox[0], top - bbox[1]), text, fill=fill, font=font)
+
+
+def _draw_text_center_y(draw, xy, text, font, fill, box_height):
+    x, top = xy
+    _, text_height = _text_size(draw, text, font)
+    _draw_text_top(draw, (x, top + (box_height - text_height) / 2), text, font, fill)
+
+
+def _wrap_text_pixels(draw, text, font, max_width):
+    leading_punctuation = "，。；：？！、,.!?;:)]}）】》"
+    lines = []
+    for paragraph in text.splitlines():
+        if not paragraph:
+            lines.append("")
+            continue
+        current = ""
+        for char in paragraph:
+            candidate = current + char
+            if current and draw.textlength(candidate, font=font) > max_width:
+                if char in leading_punctuation:
+                    lines.append(candidate)
+                    current = ""
+                else:
+                    lines.append(current)
+                    current = char
+            else:
+                current = candidate
+        if current:
+            lines.append(current)
+    return lines
+
+
+def _chip_width(draw, tag, font, scale):
+    return int(draw.textlength(tag, font=font) / scale + 24)
+
+
+def _chip_rows(draw, tags, width, margin_x, font, scale):
+    rows = []
+    current = []
+    current_width = 0
+    max_width = width - margin_x * 2 - 40
+    for tag in tags:
+        chip_width = _chip_width(draw, tag, font, scale)
+        if current and current_width + chip_width + 10 > max_width:
+            rows.append(current)
+            current = [tag]
+            current_width = chip_width
+        else:
+            current.append(tag)
+            current_width += chip_width + 10
+    if current:
+        rows.append(current)
+    return rows
+
+
+def _content_metrics(content):
+    units = max((text_units(line) for line in content.splitlines()), default=0)
+    total_units = text_units(content)
+    if total_units <= 34 and units <= 28:
+        size = 32
+    elif total_units <= 72 and units <= 36:
+        size = 30
+    elif total_units <= 140:
+        size = 28
+    else:
+        size = 24
+    return size, int(size * 1.52)
+
+
+def render_png(row, out_path, total_memos, width=600):
+    Image, ImageDraw, ImageFont = _load_pillow()
+
+    scale = 3
+    canvas_width = width * scale
+    out_path = Path(out_path)
+
     tags = json.loads(row["tags"]) if row["tags"] else []
-    tag_html = "\n".join(f'<span class="tag">#{escape(tag.lstrip("#"))}</span>' for tag in tags)
-    if not tag_html:
-        tag_html = '<span class="tag">memo</span>'
+    tag_items = [f"#{tag.lstrip('#')}" for tag in tags] or ["memo"]
+    content = row["content"].strip()
+    content_size, content_line_h = _content_metrics(content)
+    created_at = fmt_datetime(row["created_at"])
+    brand_text = f"{total_memos} memos"
 
-    regular_font = font_uri("regular")
-    medium_font = font_uri("medium") or regular_font
-    regular_face = (
-        (
-            f'@font-face {{ font-family: "MemoWenKai"; src: url("{regular_font}") '
-            'format("truetype"); font-weight: 400; }'
-        )
-        if regular_font
-        else ""
+    card_margin = 28
+    card_pad_y = 36
+    content_x = 44
+    content_right = width - 44
+    tag_h = 30
+    tag_row_gap = 4
+    content_gap = 30
+    footer_gap = 36
+    footer_h = 30
+    tag_font = _font(ImageFont, 22 * scale, "medium")
+    content_font = _font(ImageFont, content_size * scale, "medium")
+    footer_font = _font(ImageFont, 23 * scale)
+    footer_brand_font = _font(ImageFont, 23 * scale, "medium")
+
+    def s(value):
+        return int(round(value * scale))
+
+    measure = Image.new("RGB", (1, 1), KAMI_PARCHMENT)
+    measure_draw = ImageDraw.Draw(measure)
+    rows = _chip_rows(measure_draw, tag_items, width, content_x, tag_font, scale)
+    tag_top = card_margin + card_pad_y
+    tags_h = len(rows) * tag_h + max(0, len(rows) - 1) * tag_row_gap
+    content_top = tag_top + tags_h + content_gap
+    content_lines = _wrap_text_pixels(
+        measure_draw,
+        content,
+        content_font,
+        s(content_right - content_x),
     )
-    medium_face = (
-        (
-            f'@font-face {{ font-family: "MemoWenKai"; src: url("{medium_font}") '
-            'format("truetype"); font-weight: 500; }'
-        )
-        if medium_font
-        else ""
+    footer_top = content_top + len(content_lines) * content_line_h + footer_gap
+    content_height = footer_top + footer_h + card_pad_y - card_margin
+    height = card_margin * 2 + content_height
+    image = Image.new("RGB", (canvas_width, height * scale), KAMI_PARCHMENT)
+    draw = ImageDraw.Draw(image)
+
+    draw.rounded_rectangle(
+        (s(card_margin), s(card_margin), s(width - card_margin), s(height - card_margin)),
+        radius=s(16),
+        fill=KAMI_IVORY,
     )
 
-    content = escape(row["content"].strip())
-    created_at = escape(fmt_datetime(row["created_at"]))
-    brand_text = escape(f"{total_memos} memos")
+    y = tag_top
+    for row_tags in rows:
+        x = content_x
+        for tag in row_tags:
+            chip_width = _chip_width(draw, tag, tag_font, scale)
+            draw.rounded_rectangle(
+                (s(x), s(y), s(x + chip_width), s(y + tag_h)),
+                radius=s(3),
+                fill=KAMI_TAG_BG,
+            )
+            _draw_text_center_y(draw, (s(x + 12), s(y)), tag, tag_font, KAMI_INK, s(tag_h))
+            x += chip_width + 10
+        y += tag_h + tag_row_gap
 
-    return f"""<!doctype html>
-<html lang="zh-CN">
-<head>
-<meta charset="utf-8">
-<style>
-{regular_face}
-{medium_face}
-:root {{
-  --parchment: #f5f4ed;
-  --ivory: #faf9f5;
-  --near-black: #141413;
-  --stone: #6b6a64;
-  --brand: #1B365D;
-  --border: #e8e6dc;
-  --tag-bg: #E4ECF5;
-  --serif: "MemoWenKai", "LXGW WenKai", "Songti SC", "STSong", serif;
-}}
-* {{ box-sizing: border-box; }}
-html, body {{
-  margin: 0;
-  padding: 0;
-  background: var(--parchment);
-}}
-body {{
-  width: 900px;
-  color: var(--near-black);
-  font-family: var(--serif);
-  letter-spacing: 0;
-}}
-.page {{
-  width: 900px;
-  padding: 28px;
-  background: var(--parchment);
-}}
-.card {{
-  padding: 24px 36px 30px;
-  border-radius: 16px;
-  background: var(--ivory);
-}}
-.tags {{
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 0 0 30px;
-}}
-.tag {{
-  display: inline-block;
-  padding: 2px 10px 3px;
-  border-radius: 3px;
-  background: var(--tag-bg);
-  color: var(--brand);
-  font-size: 22px;
-  line-height: 1.15;
-  font-weight: 500;
-}}
-.content {{
-  margin: 0;
-  color: var(--near-black);
-  font-family: var(--serif);
-  font-size: 40px;
-  line-height: 1.38;
-  font-weight: 400;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}}
-.footer {{
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin-top: 36px;
-  color: var(--stone);
-  font-size: 23px;
-  line-height: 1.3;
-  font-weight: 400;
-}}
-.brand {{
-  color: var(--brand);
-  font-weight: 500;
-}}
-</style>
-</head>
-<body>
-  <main class="page">
-    <section class="card">
-      <div class="tags">{tag_html}</div>
-      <pre class="content">{content}</pre>
-      <footer class="footer">
-        <span>创建于：{created_at}</span>
-        <span class="brand">{brand_text}</span>
-      </footer>
-    </section>
-  </main>
-</body>
-</html>"""
+    y = content_top
+    for line in content_lines:
+        _draw_text_center_y(
+            draw,
+            (s(content_x), s(y)),
+            line,
+            content_font,
+            KAMI_NEAR_BLACK,
+            s(content_line_h),
+        )
+        y += content_line_h
 
+    _draw_text_center_y(
+        draw,
+        (s(content_x), s(footer_top)),
+        created_at,
+        footer_font,
+        KAMI_STONE,
+        s(footer_h),
+    )
+    brand_width = draw.textlength(brand_text, font=footer_brand_font) / scale
+    _draw_text_center_y(
+        draw,
+        (s(content_right - brand_width), s(footer_top)),
+        brand_text,
+        footer_brand_font,
+        KAMI_INK,
+        s(footer_h),
+    )
 
-async def render_png(row, out_path, total_memos):
+    image = image.resize((width, height), Image.Resampling.LANCZOS)
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    executable = chrome_executable()
-    launch_args = {"headless": True}
-    if executable:
-        launch_args["executable_path"] = executable
-
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(**launch_args)
-        page = await browser.new_page(viewport={"width": 900, "height": 800}, device_scale_factor=1)
-        await page.set_content(render_html(row, total_memos), wait_until="load")
-        await page.evaluate("document.fonts && document.fonts.ready")
-        await page.locator(".page").screenshot(path=str(out_path), animations="disabled")
-        await browser.close()
-
-
-def parse_args():
-    parser = argparse.ArgumentParser(description="生成 memo PNG 分享图")
-    parser.add_argument("--db", required=True)
-    parser.add_argument("--id", required=True, type=int)
-    parser.add_argument("--out", required=True)
-    parser.add_argument("--total", required=True, type=int)
-    return parser.parse_args()
-
-
-def main():
-    args = parse_args()
-    row = load_memo(args.db, args.id)
-    asyncio.run(render_png(row, Path(args.out), args.total))
-    print(f"saved: {args.out}")
-
-
-if __name__ == "__main__":
-    main()
+    image.save(out_path, "PNG")
+    return out_path
