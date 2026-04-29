@@ -55,6 +55,7 @@ pip install a-memo
 
 ```bash
 memo add "read later #idea"
+memo show 1
 memo list
 memo list "#idea"
 memo search "later"
@@ -96,6 +97,7 @@ Safe read-only commands:
 ```bash
 memo list --limit 20
 memo search "keyword"
+memo show <id>
 memo tags
 memo links <id>
 memo review --count 5

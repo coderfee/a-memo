@@ -31,6 +31,7 @@ COMMANDS = [
     "add",
     "update",
     "delete",
+    "show",
     "list",
     "search",
     "review",
@@ -113,6 +114,7 @@ def _print_help_and_exit(exit_code=0):
     print("    review         review memos")
     print("    update         update memo")
     print("    delete         delete memo")
+    print("    show           show one memo")
     print("    tag            tag memo")
     print("    tags           list all tags")
     print("    link           link two memos")

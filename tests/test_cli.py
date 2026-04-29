@@ -88,6 +88,14 @@ def test_init_add_list_search_tags_update_rebuild_and_delete(data_dir, capsys):
     assert code == 0
     assert rows[0]["id"] == 1
 
+    code, out, err = run_cli(["show", "1"], capsys)
+    row = parse_json_output(out)
+    assert code == 0
+    assert err == ""
+    assert row["id"] == 1
+    assert row["content"] == "hello world"
+    assert row["tags"] == ["#work/ai"]
+
     code, out, _ = run_cli(["tags"], capsys)
     assert parse_json_output(out) == ["#work/ai"]
 
@@ -132,6 +140,13 @@ def test_tag_link_links_unlink_and_related_errors(data_dir, capsys):
     assert links[0]["relation_type"] == "supports"
     assert links[0]["note"] == "good link"
 
+    code, out, err = run_cli(["show", "1", "--links"], capsys)
+    row = parse_json_output(out)
+    assert code == 0
+    assert err == ""
+    assert row["links"][0]["id"] == 2
+    assert row["links"][0]["relation_type"] == "supports"
+
     code, out, err = run_cli(["unlink", "2", "1", "--type", "supports"], capsys)
     assert code == 0
     assert err == ""
@@ -149,6 +164,11 @@ def test_tag_link_links_unlink_and_related_errors(data_dir, capsys):
     code, _, err = run_cli(["links", "99"], capsys)
     assert code == 1
     assert "memo not found: #99" in err
+
+    code, out, err = run_cli(["show", "99"], capsys)
+    assert code == 1
+    assert out == ""
+    assert "memo #99 not found" in err
 
 
 def test_review_push_outputs_links_updates_counts_and_history(data_dir, capsys):
