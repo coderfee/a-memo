@@ -35,7 +35,7 @@ jobs:
         run: uv build
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3.0.0
         with:
           files: |
             dist/*.whl
@@ -123,6 +123,6 @@ jobs:
           fi
 
       - name: Upload binary to GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3.0.0
         with:
           files: ${{ matrix.asset-name }}.${{ matrix.archive }}
