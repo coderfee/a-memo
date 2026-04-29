@@ -1,66 +1,130 @@
 # a-memo
 
-A lightweight memo CLI tool for AI agents with SQLite + FTS5, supporting tags, links, review, and share image generation.
+A lightweight memo CLI for quick notes, tags, search, review, links, backup, import/export, and share images.
 
 [![PyPI version](https://img.shields.io/pypi/v/a-memo)](https://pypi.org/project/a-memo/)
 [![GitHub](https://img.shields.io/github/license/coderfee/a-memo)](https://github.com/coderfee/a-memo)
 
 ## Install
 
+### macOS / Linux binary
+
+Download the right archive from the [latest release](https://github.com/coderfee/a-memo/releases/latest):
+
+- macOS Apple Silicon: `memo-macos-arm64.tar.gz`
+- macOS Intel: `memo-macos-x86_64.tar.gz`
+- Linux x86_64: `memo-linux-x86_64.tar.gz`
+
+```bash
+tar -xzf memo-macos-arm64.tar.gz
+chmod +x memo
+./memo --version
+```
+
+Install it into your PATH:
+
+```bash
+mkdir -p ~/.local/bin
+mv memo ~/.local/bin/memo
+memo --help
+```
+
+Add `~/.local/bin` to your PATH:
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+### Windows binary
+
+Download `memo-windows-x86_64.zip` from the [latest release](https://github.com/coderfee/a-memo/releases/latest), unzip it, then run:
+
+```powershell
+.\memo.exe --version
+```
+
+### uv
+
 ```bash
 uv tool install a-memo
 ```
 
-PNG share images need the optional Playwright dependency:
+Upgrade:
 
 ```bash
-uv tool install "a-memo[png]"
-uv tool run playwright install chromium
+uv tool upgrade a-memo
 ```
 
-If `a-memo` is already installed without the PNG extra:
+### pipx
 
 ```bash
-uv tool install --force "a-memo[png]"
+pipx install a-memo
 ```
 
-pip also works:
+Upgrade:
+
+```bash
+pipx upgrade a-memo
+```
+
+### pip
 
 ```bash
 pip install a-memo
-pip install "a-memo[png]"
 ```
+
+Upgrade:
+
+```bash
+pip install --upgrade a-memo
+```
+
+## Share Images
+
+Generate a vertical PNG share image:
+
+```bash
+memo image 1
+memo image 1 --out share.png
+```
+
+Images use a 600px wide vertical card. Tags, text, timestamp, and memo count are rendered into
+the PNG directly.
 
 ## Usage
 
 ```bash
-memo add "content" #tag           # add memo
-memo list                            # list all memos
-memo search "keyword"                # full-text search
-memo review --push                    # spaced repetition review
-memo image 1                         # generate share image (PNG)
-memo link 1 2                        # link two memos
-memo backup                          # backup SQLite database
-memo export --out memos.json         # export JSON
-memo import memos.json               # import JSON
-memo flomo-import export.html        # import from flomo
+memo add "read later #idea"
+memo list
+memo list '#idea'
+memo search "later"
+memo review
+memo review --push
+memo link 1 2
+memo links 1
+memo image 1
+memo backup
+memo export --out memos.json
+memo import memos.json
+memo flomo-import export.html
 ```
 
-## Data
+Show all commands:
 
-Data stored at `~/.memo/`:
+```bash
+memo --help
+memo <command> --help
+```
 
-- `memo.db` - SQLite database
-- `images/` - share images
-- `history/` - review history
-- `backups/` - manual backups
+Show version:
 
-The database uses SQLite `PRAGMA user_version` migrations. New versions upgrade the schema
-automatically when `memo` opens the database.
+```bash
+memo --version
+```
 
-## Backup And Portability
+## Backup And Migration
 
-Create a SQLite backup:
+Create a backup:
 
 ```bash
 memo backup
@@ -73,74 +137,33 @@ Export portable JSON:
 memo export --out memos.json
 ```
 
-Import JSON into the current database:
+Import JSON:
 
 ```bash
 memo import memos.json
 ```
 
-Replace the current database content with an export. A backup is created first:
+Replace current data with an export:
 
 ```bash
 memo import memos.json --replace
 ```
 
-Reset deletes the data directory and creates a database backup first:
+Reset local data:
 
 ```bash
 memo reset --force
 ```
 
-## Options
+## Data Location
 
-```bash
-memo --help              # show all commands
-memo --version           # show version
-memo list #tag            # filter by tag
-memo list --limit 20      # limit results
+`memo` stores local data under:
+
+```text
+~/.memo/
 ```
 
-## Share Images
-
-SVG is always available:
-
-```bash
-memo image 1 --format svg
-```
-
-PNG requires the `png` extra and a Chromium-compatible browser:
-
-```bash
-uv tool install "a-memo[png]"
-uv tool run playwright install chromium
-memo image 1 --format png
-```
-
-If Chrome or Chromium is already installed on the system, `memo image` can use it directly.
-
-## Development
-
-```bash
-uv sync --extra dev
-uv run --extra dev pytest
-uv tool run ruff check .
-uv tool run ruff format --check .
-uv tool run ty check
-```
-
-PNG development needs the optional dependency:
-
-```bash
-uv sync --extra dev --extra png
-uv run playwright install chromium
-uv run memo image 1 --format png
-```
-
-Before committing, run the same checks as the git hook:
-
-```bash
-.githooks/pre-commit
-```
+Use `memo backup` or `memo export` before moving data between machines.
 
 ## License
 

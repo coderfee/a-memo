@@ -1,6 +1,7 @@
 # a-memo
 
-Lightweight memo CLI tool for AI agents with SQLite + FTS5.
+Lightweight memo CLI tool for quick notes, tags, search, review, links, backup,
+import/export, and PNG share images.
 
 ## Install
 
@@ -29,4 +30,5 @@ memo --help
 
 ## Share Images
 
-PNG requires Playwright + Chrome. Use `--format svg` as fallback.
+`memo image <id>` generates a vertical PNG share card. The base install includes image
+generation.

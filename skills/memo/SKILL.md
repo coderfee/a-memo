@@ -18,7 +18,7 @@ and preserve recoverability for risky operations.
 - Treat conversation as context. Write only when the user explicitly asks to save, update,
   delete, tag, link, import, review-push, or reset memo data.
 - Query commands can run directly: `init`, `list`, `search`, `tags`, `review`, `links`,
-  `backup`, `export`, `image --format svg`, `flomo-import --dry-run`, `rebuild-fts`.
+  `backup`, `export`, `image`, `flomo-import --dry-run`, `rebuild-fts`.
 - Write commands require explicit user intent: `add`, `update`, `delete`, `tag`, `link`,
   `unlink`, `review --push`, `import`, formal `flomo-import`.
 - Destructive commands require explicit user intent and a backup: `reset --force`,
@@ -43,8 +43,7 @@ memo links <id>
 memo unlink <id1> <id2>
 memo review --count 5
 memo review --count 1 --push
-memo image <id> --format svg
-memo image <id> --format png
+memo image <id>
 memo backup
 memo export --out memos.json
 memo import memos.json
@@ -206,21 +205,13 @@ memo import memos.json --replace
 
 ## Images
 
-SVG is the reliable fallback:
+PNG works with the base install. `memo image <id>` creates a 600px wide vertical card with
+tags, memo text, timestamp, and memo count:
 
 ```bash
-memo image <id> --format svg
+memo image <id>
+memo image <id> --out share.png
 ```
-
-PNG requires the optional dependency and a browser:
-
-```bash
-uv tool install --force "a-memo[png]"
-uv tool run playwright install chromium
-memo image <id> --format png
-```
-
-If PNG fails, report the actionable install command from the error and generate SVG.
 
 ## Flomo Import
 
