@@ -13,8 +13,8 @@ with clear intent, verify every write, and protect data before risky operations.
 
 ## Decision Rules
 
-- Read directly when the user asks to find, list, search, review, inspect tags, inspect links,
-  export, back up, dry-run an import, or generate an image.
+- Read directly when the user asks to find, show, list, search, review, inspect tags,
+  inspect links, export, back up, dry-run an import, or generate an image.
 - Write only when the user asks to save, update, delete, tag, link, unlink, import, push review
   state, or reset data.
 - Back up before destructive or bulk operations.
@@ -31,6 +31,8 @@ memo init
 memo list --limit 20
 memo list "#tag"
 memo search "keyword"
+memo show <id>
+memo show <id> --links
 memo tags
 memo links <id>
 memo review --count 5
@@ -78,6 +80,7 @@ memo export --out memos-before-change.json
 ```bash
 memo list --limit 20
 memo search "distinct phrase"
+memo show <id>
 memo tags
 memo links <id>
 ```
@@ -88,6 +91,7 @@ memo links <id>
 ```bash
 memo list --limit 3
 memo search "keyword"
+memo show <id>
 memo list "#tag"
 memo links <id>
 memo tags
@@ -116,6 +120,7 @@ Search:
 
 ```bash
 memo search "keyword"
+memo show <id>
 memo list "#tag"
 ```
 
