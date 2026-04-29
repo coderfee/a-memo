@@ -55,7 +55,7 @@ jobs:
             asset-name: memo-linux-x86_64
             executable: memo
             archive: tar.gz
-          - os: macos-13
+          - os: macos-15-intel
             asset-name: memo-macos-x86_64
             executable: memo
             archive: tar.gz
