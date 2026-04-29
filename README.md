@@ -1,19 +1,22 @@
 # a-memo
 
-A lightweight memo CLI for quick notes, tags, search, review, links, backup, import/export, and share images.
+A small memo CLI for saving notes, finding them later, reviewing old thoughts, and turning a memo into a share image.
 
 [![PyPI version](https://img.shields.io/pypi/v/a-memo)](https://pypi.org/project/a-memo/)
 [![GitHub](https://img.shields.io/github/license/coderfee/a-memo)](https://github.com/coderfee/a-memo)
 
-## Install
+## For Humans
 
-### macOS / Linux binary
+### Install
 
-Download the right archive from the [latest release](https://github.com/coderfee/a-memo/releases/latest):
+Download a standalone binary from the [latest release](https://github.com/coderfee/a-memo/releases/latest).
 
 - macOS Apple Silicon: `memo-macos-arm64.tar.gz`
 - macOS Intel: `memo-macos-x86_64.tar.gz`
 - Linux x86_64: `memo-linux-x86_64.tar.gz`
+- Windows x86_64: `memo-windows-x86_64.zip`
+
+macOS / Linux:
 
 ```bash
 tar -xzf memo-macos-arm64.tar.gz
@@ -21,7 +24,7 @@ chmod +x memo
 ./memo --version
 ```
 
-Install it into your PATH:
+Install into your PATH:
 
 ```bash
 mkdir -p ~/.local/bin
@@ -29,141 +32,120 @@ mv memo ~/.local/bin/memo
 memo --help
 ```
 
-Add `~/.local/bin` to your PATH:
-
-```bash
-export PATH="$HOME/.local/bin:$PATH"
-```
-
-### Windows binary
-
-Download `memo-windows-x86_64.zip` from the [latest release](https://github.com/coderfee/a-memo/releases/latest), unzip it, then run:
+Windows:
 
 ```powershell
 .\memo.exe --version
 ```
 
-### uv
+Python install:
 
 ```bash
 uv tool install a-memo
 ```
 
-Upgrade:
-
-```bash
-uv tool upgrade a-memo
-```
-
-### pipx
+Other options:
 
 ```bash
 pipx install a-memo
-```
-
-Upgrade:
-
-```bash
-pipx upgrade a-memo
-```
-
-### pip
-
-```bash
 pip install a-memo
 ```
 
-Upgrade:
-
-```bash
-pip install --upgrade a-memo
-```
-
-## Share Images
-
-Generate a vertical PNG share image:
-
-```bash
-memo image 1
-memo image 1 --out share.png
-```
-
-Images use a 600px wide vertical card. Tags, text, timestamp, and memo count are rendered into
-the PNG directly.
-
-## Usage
+### Daily Use
 
 ```bash
 memo add "read later #idea"
 memo list
-memo list '#idea'
+memo list "#idea"
 memo search "later"
 memo review
 memo review --push
-memo link 1 2
-memo links 1
+```
+
+### Share Images
+
+```bash
 memo image 1
-memo backup
-memo export --out memos.json
-memo import memos.json
-memo flomo-import export.html
+memo image 1 --out share.png
+memo image 1 --style ink
 ```
 
-Show all commands:
+Styles:
 
-```bash
-memo --help
-memo <command> --help
-```
+- `paper`: warm reading card, default
+- `clean`: minimal white note
+- `ink`: stronger blue ink frame
 
-Show version:
-
-```bash
-memo --version
-```
-
-## Backup And Migration
-
-Create a backup:
+### Backup And Move Data
 
 ```bash
 memo backup
-memo backup --out ~/Desktop/memo.db
-```
-
-Export portable JSON:
-
-```bash
 memo export --out memos.json
-```
-
-Import JSON:
-
-```bash
 memo import memos.json
-```
-
-Replace current data with an export:
-
-```bash
 memo import memos.json --replace
 ```
 
-Reset local data:
+Use `memo --help` and `memo <command> --help` for the full command list.
+
+## For Agents
+
+Use `memo` as the user's local memory tool. Treat it as a durable store: inspect first, write only with clear user intent, and verify every write.
+
+Safe read-only commands:
 
 ```bash
+memo list --limit 20
+memo search "keyword"
+memo tags
+memo links <id>
+memo review --count 5
+memo image <id>
+memo flomo-import export.html --dry-run
+```
+
+Write commands require explicit user intent:
+
+```bash
+memo add "content #tag"
+memo update <id> "new content #tag"
+memo tag <id> "#tag"
+memo link <id1> <id2>
+memo unlink <id1> <id2>
+memo delete <id>
+memo review --push
+memo import memos.json
+```
+
+Risky commands require a backup and explicit confirmation:
+
+```bash
+memo import memos.json --replace
 memo reset --force
 ```
 
-## Data Location
+Agent workflow:
 
-`memo` stores local data under:
+1. Classify the user request: search, save, edit, tag, link, review, import, export, image, or recovery.
+2. Inspect current context with `list`, `search`, `tags`, or `links`.
+3. Run the smallest authorized command.
+4. Verify the result with a narrow read command.
+5. Report memo ids, tags, backup paths, and verification results.
 
-```text
-~/.memo/
+Share image style choice:
+
+- Use `paper` by default.
+- Use `clean` when the user wants a plain note.
+- Use `ink` when the user wants stronger visual identity.
+
+More detailed agent guidance lives in [skills/memo/SKILL.md](skills/memo/SKILL.md).
+
+Install the Codex skill:
+
+```bash
+npx skills add coderfee/a-memo
+bunx skills add coderfee/a-memo
+pnpx skills add coderfee/a-memo
 ```
-
-Use `memo backup` or `memo export` before moving data between machines.
 
 ## License
 

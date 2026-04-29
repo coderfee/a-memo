@@ -207,6 +207,17 @@ def test_image_png_rendering(data_dir, tmp_path, capsys):
     assert code == 1
     assert "image output requires .png extension" in err
 
+    styled_path = tmp_path / "share-ink.png"
+    code, out, err = run_cli(["image", "1", "--style", "ink", "--out", str(styled_path)], capsys)
+    assert code == 0
+    assert err == ""
+    assert out.strip() == f"saved: {styled_path}"
+    assert styled_path.exists()
+
+    with pytest.raises(SystemExit) as invalid_style_exit:
+        cli.main(["image", "1", "--style", "loud"])
+    assert invalid_style_exit.value.code == 2
+
 
 def test_flomo_import_dry_run_success_and_failures(data_dir, tmp_path, capsys):
     html_path = tmp_path / "flomo.html"

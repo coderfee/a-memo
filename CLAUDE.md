@@ -24,6 +24,7 @@ memo list
 memo search "keyword"
 memo review --push
 memo image 1
+memo image 1 --style ink
 memo flomo-import export.html
 memo --help
 ```
@@ -31,4 +32,4 @@ memo --help
 ## Share Images
 
 `memo image <id>` generates a vertical PNG share card. The base install includes image
-generation.
+generation. The default style is `paper`; `clean` and `ink` are also available.

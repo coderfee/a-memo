@@ -1,165 +1,189 @@
 ---
 name: memo
 description: >
-  Manage the local a-memo CLI for AI agents. Use when the user asks to save or
-  retrieve memos, search past notes, organize tags, link related memos, run review,
-  generate share images, import Flomo exports, backup/export/import data, or recover
-  memo data safely.
+  Manage the local a-memo CLI for AI agents. Use when the user asks to save,
+  retrieve, search, organize, link, review, import, export, back up, recover, or
+  generate share images from memo data.
 ---
 
 # memo
 
-Use `memo` to manage the user's local knowledge store safely. The success path is:
-understand intent, inspect existing context, make authorized changes, verify the result,
-and preserve recoverability for risky operations.
+Use `memo` as the user's durable local memory. Work carefully: inspect first, write only
+with clear intent, verify every write, and protect data before risky operations.
 
-## Safety Rules
+## Decision Rules
 
-- Treat conversation as context. Write only when the user explicitly asks to save, update,
-  delete, tag, link, import, review-push, or reset memo data.
-- Query commands can run directly: `init`, `list`, `search`, `tags`, `review`, `links`,
-  `backup`, `export`, `image`, `flomo-import --dry-run`, `rebuild-fts`.
-- Write commands require explicit user intent: `add`, `update`, `delete`, `tag`, `link`,
-  `unlink`, `review --push`, `import`, formal `flomo-import`.
-- Destructive commands require explicit user intent and a backup: `reset --force`,
-  `import --replace`, batch delete, batch update.
-- After each write, verify with the narrowest useful command and report the concrete result.
-- If an operation fails after a backup, include the backup path in the response.
+- Read directly when the user asks to find, list, search, review, inspect tags, inspect links,
+  export, back up, dry-run an import, or generate an image.
+- Write only when the user asks to save, update, delete, tag, link, unlink, import, push review
+  state, or reset data.
+- Back up before destructive or bulk operations.
+- Prefer existing tag structure. Run `memo tags` before introducing new tag hierarchies.
+- Verify with the narrowest useful command after every write.
+- Report concrete ids, tags, file paths, backup paths, and verification results.
 
-## Core Commands
+## Command Safety
+
+Safe read-oriented commands:
 
 ```bash
 memo init
-memo add "content #tag"
 memo list --limit 20
 memo list "#tag"
 memo search "keyword"
 memo tags
-memo tag <id> "#tag"
-memo update <id> "new content #tag"
-memo delete <id>
-memo link <id1> <id2> --type related --note "why"
 memo links <id>
-memo unlink <id1> <id2>
 memo review --count 5
-memo review --count 1 --push
-memo image <id>
 memo backup
 memo export --out memos.json
-memo import memos.json
-memo import memos.json --replace
+memo image <id>
 memo flomo-import export.html --dry-run
-memo flomo-import export.html
 memo rebuild-fts
+```
+
+Intent-required write commands:
+
+```bash
+memo add "content #tag"
+memo update <id> "new content #tag"
+memo tag <id> "#tag"
+memo link <id1> <id2> --type related --note "why"
+memo unlink <id1> <id2>
+memo delete <id>
+memo review --count 1 --push
+memo import memos.json
+memo flomo-import export.html
+```
+
+High-risk commands:
+
+```bash
+memo import memos.json --replace
 memo reset --force
+```
+
+Before high-risk commands:
+
+```bash
+memo backup
+memo export --out memos-before-change.json
 ```
 
 ## Standard Workflow
 
-1. Classify the request: query, save, edit, tag, link, review, import, export, recover, reset.
+1. Classify the request: search, save, edit, tag, link, review, image, import, export, backup,
+   recovery, maintenance, or reset.
 2. Inspect context:
-   - Find a memo: `memo search "keyword"` or `memo list --limit 20`
-   - Check tags: `memo tags`
-   - Check relationships: `memo links <id>`
-3. Execute only the authorized command.
+
+```bash
+memo list --limit 20
+memo search "distinct phrase"
+memo tags
+memo links <id>
+```
+
+3. Execute the smallest authorized command.
 4. Verify:
-   - Add/update/delete: `memo list --limit 3` or `memo search "keyword"`
-   - Tag: `memo list "#tag"` or `memo tags`
-   - Link/unlink: `memo links <id>`
-   - Import/export/restore: `memo list --limit 3`, `memo tags`, targeted `memo search`
-5. Report ids, tags, backup path, and verification result.
 
-## Add And Update
+```bash
+memo list --limit 3
+memo search "keyword"
+memo list "#tag"
+memo links <id>
+memo tags
+```
 
-Use `add` only when the user asks to record/save a memo:
+5. Respond with the result and verification.
+
+## Common Tasks
+
+Add a memo:
 
 ```bash
 memo add "memo text #area/topic"
 memo list --limit 1
 ```
 
-Tags inside content are extracted and lowercased. Body text is stored without the tag text.
-
-Use `update` when the user names an existing memo:
+Update a memo:
 
 ```bash
 memo update <id> "new content"
 memo update <id> "new content #newtag"
-```
-
-`update` keeps existing tags when no tags are supplied. It replaces tags when tags are supplied.
-
-## Search And Listing
-
-Use `search` for semantic or keyword lookup:
-
-```bash
-memo search "keyword"
-```
-
-Use `list` for recent items or tag-filtered views:
-
-```bash
-memo list --limit 20
-memo list "#area/topic"
-```
-
-When a user gives an id, verify it before destructive edits:
-
-```bash
-memo list --limit 20
 memo search "distinct phrase"
 ```
 
-## Tags
+Search:
 
-Use existing tag structure before inventing new labels:
+```bash
+memo search "keyword"
+memo list "#tag"
+```
+
+Tag:
 
 ```bash
 memo tags
 memo tag <id> "#area/topic"
+memo list "#area/topic"
 ```
 
-`tag` appends tags and deduplicates. For careful tagging:
-
-1. Run `memo tags`.
-2. Prefer existing hierarchy.
-3. Check related memos with `memo links <id>`.
-4. For batch tagging, show the plan and wait for user confirmation.
-
-## Links
-
-Relations are logically bidirectional:
+Link:
 
 ```bash
 memo link <id1> <id2>
 memo link <id1> <id2> --type supports --note "evidence"
 memo link <id1> <id2> --type contrasts --note "opposing case"
 memo links <id1>
-memo unlink <id1> <id2>
 ```
 
-Relation types:
-
-- `related`: general connection
-- `supports`: one memo supports another
-- `contrasts`: two memos form a contrast
-
-Before linking, confirm both ids exist and choose the relation type. After linking, run
-`memo links <id>`.
-
-## Review
+Review:
 
 ```bash
 memo review --count 5
 memo review --count 1 --push
 ```
 
-`review` reads candidates. `review --push` records the review, increments `review_count`,
-updates `last_review_at`, and appends to `~/.memo/history/`.
+Use `review --push` only for a real review session, because it records review state.
 
-Use `--push` when the user asks to perform a real review session. Format review output for the
-user:
+Import:
+
+```bash
+memo flomo-import export.html --dry-run
+memo backup
+memo flomo-import export.html
+memo list --limit 5
+memo tags
+```
+
+Recovery or migration:
+
+```bash
+memo backup
+memo export --out memos.json
+memo import memos.json --replace
+memo list --limit 5
+memo tags
+```
+
+## Share Images
+
+Generate a PNG share card:
+
+```bash
+memo image <id>
+memo image <id> --out share.png
+memo image <id> --style ink
+```
+
+Style guidance:
+
+- `paper`: default warm reading card
+- `clean`: minimal white note
+- `ink`: stronger blue ink frame
+
+## Review Output Format
+
+When presenting review results to the user, use this shape:
 
 ```markdown
 ### Memo 回顾 · #ID
@@ -176,80 +200,6 @@ YYYY/MM/DD HH:mm:ss · 回顾 N 次
 
 Omit the related memo section when no links exist.
 
-## Backup, Export, Import, Recovery
-
-Use backups before risky work:
-
-```bash
-memo backup
-memo export --out memos.json
-memo import memos.json
-memo import memos.json --replace
-```
-
-Guidance:
-
-- `backup` creates a SQLite backup.
-- `export` creates portable JSON.
-- `import` appends data and remaps links.
-- `import --replace` replaces current data and creates an automatic backup.
-- After import or recovery, verify with `list`, `tags`, and a targeted `search`.
-
-Migration to another machine:
-
-```bash
-memo export --out memos.json
-# copy memos.json to the new machine
-memo import memos.json --replace
-```
-
-## Images
-
-PNG works with the base install. `memo image <id>` creates a 600px wide vertical card with
-tags, memo text, timestamp, and memo count:
-
-```bash
-memo image <id>
-memo image <id> --out share.png
-```
-
-## Flomo Import
-
-Always preview first:
-
-```bash
-memo flomo-import export.html --dry-run
-```
-
-When the user confirms:
-
-```bash
-memo backup
-memo flomo-import export.html
-memo list --limit 5
-memo tags
-```
-
-Report parsed/imported/skipped/failed counts.
-
-## Maintenance
-
-Search index issue:
-
-```bash
-memo rebuild-fts
-memo search "keyword"
-```
-
-Full reset:
-
-```bash
-memo reset --force
-```
-
-Use reset only when the user asks to delete all memo data. The command creates an automatic
-backup when a database exists. Report the backup path.
-
 ## Response Templates
 
 Write completed:
@@ -261,7 +211,7 @@ Write completed:
 - 验证：<command/result>
 ```
 
-Backup/import/recovery completed:
+Backup, import, or recovery completed:
 
 ```markdown
 已完成：<action>

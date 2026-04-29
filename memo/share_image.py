@@ -9,7 +9,6 @@ from .helpers import (
     KAMI_NEAR_BLACK,
     KAMI_PARCHMENT,
     KAMI_STONE,
-    KAMI_TAG_BG,
     fmt_datetime,
     text_units,
 )
@@ -102,14 +101,14 @@ def _wrap_text_pixels(draw, text, font, max_width):
 
 
 def _chip_width(draw, tag, font, scale):
-    return int(draw.textlength(tag, font=font) / scale + 24)
+    return int(draw.textlength(tag, font=font) / scale + 20)
 
 
 def _chip_rows(draw, tags, width, margin_x, font, scale):
     rows = []
     current = []
     current_width = 0
-    max_width = width - margin_x * 2 - 40
+    max_width = width - margin_x * 2
     for tag in tags:
         chip_width = _chip_width(draw, tag, font, scale)
         if current and current_width + chip_width + 10 > max_width:
@@ -127,49 +126,118 @@ def _chip_rows(draw, tags, width, margin_x, font, scale):
 def _content_metrics(content):
     units = max((text_units(line) for line in content.splitlines()), default=0)
     total_units = text_units(content)
-    if total_units <= 34 and units <= 28:
-        size = 32
-    elif total_units <= 72 and units <= 36:
+    if total_units <= 36 and units <= 28:
         size = 30
-    elif total_units <= 140:
+    elif total_units <= 86 and units <= 38:
         size = 28
+    elif total_units <= 180:
+        size = 25
+    elif total_units <= 360:
+        size = 23
     else:
-        size = 24
-    return size, int(size * 1.52)
+        size = 21
+    return size, int(size * 1.72)
 
 
-def render_png(row, out_path, total_memos, width=600):
+def _theme(style):
+    themes = {
+        "clean": {
+            "page": "#f6f6f2",
+            "card": "#ffffff",
+            "shadow": None,
+            "border": None,
+            "tag_bg": "#eeeeeb",
+            "tag_text": "#5c625f",
+            "content": "#151514",
+            "footer": "#7b7b75",
+            "brand": "#3f4643",
+            "divider_color": "#deded8",
+            "radius": 0,
+            "card_margin": 0,
+            "pad_y": 50,
+            "content_x": 54,
+            "tag_radius": 13,
+            "shadow_offset": 0,
+            "show_divider": True,
+        },
+        "paper": {
+            "page": KAMI_PARCHMENT,
+            "card": KAMI_IVORY,
+            "shadow": "#eeece2",
+            "border": "#e8e4d8",
+            "tag_bg": "#edf3f7",
+            "tag_text": KAMI_INK,
+            "content": KAMI_NEAR_BLACK,
+            "footer": KAMI_STONE,
+            "brand": KAMI_INK,
+            "divider_color": "#ebe7dc",
+            "radius": 18,
+            "card_margin": 26,
+            "pad_y": 38,
+            "content_x": 52,
+            "tag_radius": 3,
+            "shadow_offset": 4,
+            "show_divider": True,
+        },
+        "ink": {
+            "page": "#ebe9df",
+            "card": "#fbfaf2",
+            "shadow": "#dedace",
+            "border": "#233a5d",
+            "tag_bg": "#233a5d",
+            "tag_text": "#f7f5ec",
+            "content": "#111827",
+            "footer": "#626863",
+            "brand": "#172f52",
+            "divider_color": "#233a5d",
+            "radius": 10,
+            "card_margin": 24,
+            "pad_y": 42,
+            "content_x": 50,
+            "tag_radius": 2,
+            "shadow_offset": 6,
+            "show_divider": True,
+        },
+    }
+    if style not in themes:
+        allowed = ", ".join(themes)
+        raise ValueError(f"image style must be one of: {allowed}")
+    return themes[style]
+
+
+def render_png(row, out_path, total_memos, width=600, style="paper"):
     Image, ImageDraw, ImageFont = _load_pillow()
 
     scale = 3
     canvas_width = width * scale
     out_path = Path(out_path)
+    theme = _theme(style)
 
     tags = json.loads(row["tags"]) if row["tags"] else []
     tag_items = [f"#{tag.lstrip('#')}" for tag in tags] or ["memo"]
     content = row["content"].strip()
     content_size, content_line_h = _content_metrics(content)
     created_at = fmt_datetime(row["created_at"])
-    brand_text = f"{total_memos} memos"
+    brand_text = f"a-memo · {total_memos} memos"
 
-    card_margin = 28
-    card_pad_y = 36
-    content_x = 44
-    content_right = width - 44
-    tag_h = 30
-    tag_row_gap = 4
-    content_gap = 30
-    footer_gap = 36
-    footer_h = 30
-    tag_font = _font(ImageFont, 22 * scale, "medium")
+    card_margin = theme["card_margin"]
+    card_pad_y = theme["pad_y"]
+    content_x = theme["content_x"]
+    content_right = width - theme["content_x"]
+    tag_h = 26
+    tag_row_gap = 6
+    content_gap = 34
+    footer_gap = 38
+    footer_h = 28
+    tag_font = _font(ImageFont, 18 * scale, "medium")
     content_font = _font(ImageFont, content_size * scale, "medium")
-    footer_font = _font(ImageFont, 23 * scale)
-    footer_brand_font = _font(ImageFont, 23 * scale, "medium")
+    footer_font = _font(ImageFont, 18 * scale)
+    footer_brand_font = _font(ImageFont, 18 * scale, "medium")
 
     def s(value):
         return int(round(value * scale))
 
-    measure = Image.new("RGB", (1, 1), KAMI_PARCHMENT)
+    measure = Image.new("RGB", (1, 1), theme["page"])
     measure_draw = ImageDraw.Draw(measure)
     rows = _chip_rows(measure_draw, tag_items, width, content_x, tag_font, scale)
     tag_top = card_margin + card_pad_y
@@ -184,13 +252,28 @@ def render_png(row, out_path, total_memos, width=600):
     footer_top = content_top + len(content_lines) * content_line_h + footer_gap
     content_height = footer_top + footer_h + card_pad_y - card_margin
     height = card_margin * 2 + content_height
-    image = Image.new("RGB", (canvas_width, height * scale), KAMI_PARCHMENT)
+    image = Image.new("RGB", (canvas_width, height * scale), theme["page"])
     draw = ImageDraw.Draw(image)
 
+    shadow_offset = theme["shadow_offset"]
+    radius = theme["radius"]
+    if theme["shadow"]:
+        draw.rounded_rectangle(
+            (
+                s(card_margin + shadow_offset),
+                s(card_margin + shadow_offset),
+                s(width - card_margin + shadow_offset),
+                s(height - card_margin + shadow_offset),
+            ),
+            radius=s(radius),
+            fill=theme["shadow"],
+        )
     draw.rounded_rectangle(
         (s(card_margin), s(card_margin), s(width - card_margin), s(height - card_margin)),
-        radius=s(16),
-        fill=KAMI_IVORY,
+        radius=s(radius),
+        fill=theme["card"],
+        outline=theme["border"],
+        width=s(1) if theme["border"] else 0,
     )
 
     y = tag_top
@@ -200,31 +283,37 @@ def render_png(row, out_path, total_memos, width=600):
             chip_width = _chip_width(draw, tag, tag_font, scale)
             draw.rounded_rectangle(
                 (s(x), s(y), s(x + chip_width), s(y + tag_h)),
-                radius=s(3),
-                fill=KAMI_TAG_BG,
+                radius=s(theme["tag_radius"]),
+                fill=theme["tag_bg"],
             )
-            _draw_text_center_y(draw, (s(x + 12), s(y)), tag, tag_font, KAMI_INK, s(tag_h))
+            _draw_text_center_y(draw, (s(x + 10), s(y)), tag, tag_font, theme["tag_text"], s(tag_h))
             x += chip_width + 10
         y += tag_h + tag_row_gap
 
     y = content_top
     for line in content_lines:
-        _draw_text_center_y(
+        _draw_text_top(
             draw,
             (s(content_x), s(y)),
             line,
             content_font,
-            KAMI_NEAR_BLACK,
-            s(content_line_h),
+            theme["content"],
         )
         y += content_line_h
 
+    if theme["show_divider"]:
+        divider_y = footer_top - 14
+        draw.line(
+            (s(content_x), s(divider_y), s(content_right), s(divider_y)),
+            fill=theme["divider_color"],
+            width=s(1),
+        )
     _draw_text_center_y(
         draw,
         (s(content_x), s(footer_top)),
         created_at,
         footer_font,
-        KAMI_STONE,
+        theme["footer"],
         s(footer_h),
     )
     brand_width = draw.textlength(brand_text, font=footer_brand_font) / scale
@@ -233,7 +322,7 @@ def render_png(row, out_path, total_memos, width=600):
         (s(content_right - brand_width), s(footer_top)),
         brand_text,
         footer_brand_font,
-        KAMI_INK,
+        theme["brand"],
         s(footer_h),
     )
 

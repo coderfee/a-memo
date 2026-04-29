@@ -20,6 +20,12 @@ def add_parser(sub):
     p = sub.add_parser("image", help="生成分享图")
     p.add_argument("id", type=positive_int)
     p.add_argument("--out", help="输出文件路径")
+    p.add_argument(
+        "--style",
+        choices=("paper", "clean", "ink"),
+        default="paper",
+        help="分享图风格",
+    )
     p.set_defaults(func=cmd_image)
     return p
 
@@ -42,5 +48,5 @@ def cmd_image(conn, args):
 
     from memo.share_image import render_png
 
-    render_png(row, out, total_memos)
+    render_png(row, out, total_memos, style=args.style)
     print(f"saved: {out}")
