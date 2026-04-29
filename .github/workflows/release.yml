@@ -5,8 +5,11 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
-  build-and-publish:
+  package:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -31,7 +34,93 @@ jobs:
       - name: Build
         run: uv build
 
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
+
       - name: Publish to PyPI
         env:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
         run: uv publish --token $PYPI_TOKEN
+
+  binaries:
+    needs: package
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            asset-name: memo-linux-x86_64
+            executable: memo
+            archive: tar.gz
+          - os: macos-13
+            asset-name: memo-macos-x86_64
+            executable: memo
+            archive: tar.gz
+          - os: macos-14
+            asset-name: memo-macos-arm64
+            executable: memo
+            archive: tar.gz
+          - os: windows-latest
+            asset-name: memo-windows-x86_64
+            executable: memo.exe
+            archive: zip
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+
+      - name: Build binary
+        run: >
+          uv run --with pyinstaller pyinstaller
+          --clean
+          --noconfirm
+          --onefile
+          --name memo
+          --collect-submodules memo.commands
+          --collect-data memo
+          --copy-metadata a-memo
+          memo/__main__.py
+
+      - name: Rename binary
+        shell: bash
+        run: |
+          mkdir -p release-bin
+          cp "dist/${{ matrix.executable }}" "release-bin/${{ matrix.executable }}"
+
+      - name: Smoke test binary
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            ./release-bin/memo.exe --version
+            ./release-bin/memo.exe --help
+            MEMO_DATA_DIR="${RUNNER_TEMP}/memo-smoke" ./release-bin/memo.exe add "二进制中文图片测试 #smoke"
+            MEMO_DATA_DIR="${RUNNER_TEMP}/memo-smoke" ./release-bin/memo.exe image 1 --out "${RUNNER_TEMP}/memo-smoke.png"
+          else
+            ./release-bin/memo --version
+            ./release-bin/memo --help
+            MEMO_DATA_DIR="${RUNNER_TEMP}/memo-smoke" ./release-bin/memo add "二进制中文图片测试 #smoke"
+            MEMO_DATA_DIR="${RUNNER_TEMP}/memo-smoke" ./release-bin/memo image 1 --out "${RUNNER_TEMP}/memo-smoke.png"
+          fi
+          rm -rf "${RUNNER_TEMP}/memo-smoke" "${RUNNER_TEMP}/memo-smoke.png"
+
+      - name: Archive binary
+        shell: bash
+        run: |
+          cd release-bin
+          if [ "${{ matrix.archive }}" = "zip" ]; then
+            7z a "../${{ matrix.asset-name }}.zip" "${{ matrix.executable }}"
+          else
+            tar -czf "../${{ matrix.asset-name }}.tar.gz" "${{ matrix.executable }}"
+          fi
+
+      - name: Upload binary to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.asset-name }}.${{ matrix.archive }}
