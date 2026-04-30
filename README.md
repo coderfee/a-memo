@@ -9,6 +9,12 @@ A small memo CLI for saving notes, finding them later, reviewing old thoughts, a
 
 ### Install
 
+Homebrew:
+
+```bash
+brew install coderfee/tap/a-memo
+```
+
 Download a standalone binary from the [latest release](https://github.com/coderfee/a-memo/releases/latest).
 
 - macOS Apple Silicon: `memo-macos-arm64.tar.gz`

@@ -6,3 +6,4 @@ uv.lock          # 由 pyproject.toml 生成，不需要提交
 .DS_Store
 *.db-shm
 *.db-wal
+packaging/homebrew/a-memo.rb
