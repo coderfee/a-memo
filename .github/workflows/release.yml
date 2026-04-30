@@ -137,22 +137,20 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Download macOS release assets
+      - name: Download source release asset
         if: env.HOMEBREW_TAP_TOKEN != ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release download "$GITHUB_REF_NAME" \
-            --pattern "memo-macos-arm64.tar.gz" \
-            --pattern "memo-macos-x86_64.tar.gz"
+            --pattern "a_memo-${GITHUB_REF_NAME#v}.tar.gz"
 
       - name: Generate formula
         if: env.HOMEBREW_TAP_TOKEN != ''
         run: |
           python3 scripts/homebrew_formula.py \
             --version "${GITHUB_REF_NAME#v}" \
-            --arm64 memo-macos-arm64.tar.gz \
-            --x86-64 memo-macos-x86_64.tar.gz
+            --sdist "a_memo-${GITHUB_REF_NAME#v}.tar.gz"
 
       - name: Check out Homebrew tap
         if: env.HOMEBREW_TAP_TOKEN != ''

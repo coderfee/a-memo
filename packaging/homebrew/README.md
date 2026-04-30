@@ -1,14 +1,13 @@
 # Homebrew Formula
 
-`scripts/homebrew_formula.py` generates the `a-memo` Formula from release tarballs.
+`scripts/homebrew_formula.py` generates the `a-memo` Formula from the release source distribution.
 
 Local generation:
 
 ```bash
 python3 scripts/homebrew_formula.py \
-  --version 1.5.0 \
-  --arm64 memo-macos-arm64.tar.gz \
-  --x86-64 memo-macos-x86_64.tar.gz
+  --version 1.5.2 \
+  --sdist a_memo-1.5.2.tar.gz
 ```
 
 The generated file is written to `packaging/homebrew/a-memo.rb`.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the Homebrew formula for a-memo release binaries."""
+"""Generate the Homebrew formula for the a-memo Python package."""
 
 from __future__ import annotations
 
@@ -10,23 +10,20 @@ import sys
 from pathlib import Path
 
 FORMULA = """class AMemo < Formula
+  include Language::Python::Virtualenv
+
   desc "Lightweight memo CLI tool with SQLite + FTS5"
   homepage "https://github.com/coderfee/a-memo"
+  url "https://github.com/coderfee/a-memo/releases/download/v{version}/a_memo-{version}.tar.gz"
+  sha256 "{sdist_sha256}"
   version "{version}"
   license "MIT"
 
-  on_macos do
-    if Hardware::CPU.arm?
-      url "https://github.com/coderfee/a-memo/releases/download/v{version}/memo-macos-arm64.tar.gz"
-      sha256 "{arm64_sha256}"
-    else
-      url "https://github.com/coderfee/a-memo/releases/download/v{version}/memo-macos-x86_64.tar.gz"
-      sha256 "{x86_64_sha256}"
-    end
-  end
+  depends_on "pillow"
+  depends_on "python@3.13"
 
   def install
-    bin.install "memo"
+    virtualenv_install_with_resources using: "python3.13"
   end
 
   test do
@@ -56,14 +53,8 @@ def parse_args() -> argparse.Namespace:
         description="Generate packaging/homebrew/a-memo.rb for a tagged release."
     )
     parser.add_argument("--version", required=True, help="Release version without leading v.")
-    parser.add_argument("--arm64", help="Path to memo-macos-arm64.tar.gz.")
-    parser.add_argument("--x86-64", dest="x86_64", help="Path to memo-macos-x86_64.tar.gz.")
-    parser.add_argument("--arm64-sha256", help="Checksum for memo-macos-arm64.tar.gz.")
-    parser.add_argument(
-        "--x86-64-sha256",
-        dest="x86_64_sha256",
-        help="Checksum for memo-macos-x86_64.tar.gz.",
-    )
+    parser.add_argument("--sdist", help="Path to a_memo-VERSION.tar.gz.")
+    parser.add_argument("--sdist-sha256", help="Checksum for a_memo-VERSION.tar.gz.")
     parser.add_argument(
         "--out",
         default="packaging/homebrew/a-memo.rb",
@@ -90,8 +81,7 @@ def main() -> int:
         return 2
 
     try:
-        arm64_sha256 = checksum(args.arm64_sha256, args.arm64, "arm64")
-        x86_64_sha256 = checksum(args.x86_64_sha256, args.x86_64, "x86-64")
+        sdist_sha256 = checksum(args.sdist_sha256, args.sdist, "sdist")
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
         return 2
@@ -101,8 +91,7 @@ def main() -> int:
     out.write_text(
         FORMULA.format(
             version=version,
-            arm64_sha256=arm64_sha256,
-            x86_64_sha256=x86_64_sha256,
+            sdist_sha256=sdist_sha256,
         ),
         encoding="utf-8",
     )

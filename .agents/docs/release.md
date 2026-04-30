@@ -145,13 +145,12 @@ gh api repos/coderfee/homebrew-tap/contents/Formula/a-memo.rb --jq .content | ba
 
 ## Homebrew Formula 本地生成
 
-发布 workflow 会自动下载 macOS release assets 并生成 Formula。本地调试命令：
+发布 workflow 会自动下载源码包 release asset 并生成 Formula。本地调试命令：
 
 ```bash
 python3 scripts/homebrew_formula.py \
   --version 1.5.1 \
-  --arm64 memo-macos-arm64.tar.gz \
-  --x86-64 memo-macos-x86_64.tar.gz
+  --sdist a_memo-1.5.1.tar.gz
 ```
 
 输出路径：
@@ -189,17 +188,15 @@ gh repo view coderfee/homebrew-tap --json nameWithOwner,visibility,defaultBranch
 
 ### Formula checksum 需要手动更新
 
-下载 release assets 并生成 Formula：
+下载源码包 release asset 并生成 Formula：
 
 ```bash
 gh release download v1.5.1 \
-  --pattern "memo-macos-arm64.tar.gz" \
-  --pattern "memo-macos-x86_64.tar.gz"
+  --pattern "a_memo-1.5.1.tar.gz"
 
 python3 scripts/homebrew_formula.py \
   --version 1.5.1 \
-  --arm64 memo-macos-arm64.tar.gz \
-  --x86-64 memo-macos-x86_64.tar.gz
+  --sdist a_memo-1.5.1.tar.gz
 ```
 
 复制生成文件到 tap 仓库：
