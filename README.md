@@ -1,6 +1,6 @@
 # a-memo
 
-A small memo CLI for saving notes, finding them later, reviewing old thoughts, and turning a memo into a share image.
+A small memo CLI for saving notes, finding them later, reviewing old thoughts, linking related memos, and turning a memo into a PNG share image.
 
 [![PyPI version](https://img.shields.io/pypi/v/a-memo)](https://pypi.org/project/a-memo/)
 [![GitHub](https://img.shields.io/github/license/coderfee/a-memo)](https://github.com/coderfee/a-memo)
@@ -9,67 +9,45 @@ A small memo CLI for saving notes, finding them later, reviewing old thoughts, a
 
 ### Install
 
-Homebrew:
-
 ```bash
 brew install coderfee/tap/a-memo
-```
-
-Download a standalone binary from the [latest release](https://github.com/coderfee/a-memo/releases/latest).
-
-- macOS Apple Silicon: `memo-macos-arm64.tar.gz`
-- macOS Intel: `memo-macos-x86_64.tar.gz`
-- Linux x86_64: `memo-linux-x86_64.tar.gz`
-- Windows x86_64: `memo-windows-x86_64.zip`
-
-macOS / Linux:
-
-```bash
-tar -xzf memo-macos-arm64.tar.gz
-chmod +x memo
-./memo --version
-```
-
-Install into your PATH:
-
-```bash
-mkdir -p ~/.local/bin
-mv memo ~/.local/bin/memo
-memo --help
-```
-
-Windows:
-
-```powershell
-.\memo.exe --version
-```
-
-Python install:
-
-```bash
-uv tool install a-memo
 ```
 
 Other options:
 
 ```bash
-pipx install a-memo
-pip install a-memo
+uv tool install a-memo
 ```
 
-### Daily Use
+Standalone binaries are available from the [latest release](https://github.com/coderfee/a-memo/releases/latest).
+
+### Use
 
 ```bash
 memo add "read later #idea"
-memo show 1
 memo list
-memo list "#idea"
+memo show 1
 memo search "later"
 memo review
-memo review --push
 ```
 
-### Share Images
+Tags:
+
+```bash
+memo list "#idea"
+memo tags
+memo tag 1 "#idea/reading"
+```
+
+Links:
+
+```bash
+memo link 1 2
+memo links 1
+memo show 1 --links
+```
+
+Share image:
 
 ```bash
 memo image 1
@@ -77,28 +55,29 @@ memo image 1 --out share.png
 memo image 1 --style ink
 ```
 
-Styles:
-
-- `paper`: warm reading card, default
-- `clean`: minimal white note
-- `ink`: stronger blue ink frame
-
-### Backup And Move Data
+Backup and move data:
 
 ```bash
 memo backup
 memo export --out memos.json
 memo import memos.json
-memo import memos.json --replace
 ```
 
 Use `memo --help` and `memo <command> --help` for the full command list.
 
 ## For Agents
 
-Use `memo` as the user's local memory tool. Treat it as a durable store: inspect first, write only with clear user intent, and verify every write.
+Use `memo` as durable local memory. Inspect first, write only with clear user intent, and verify every write.
 
-Safe read-only commands:
+Install the skill:
+
+```bash
+npx skills add coderfee/a-memo
+bunx skills add coderfee/a-memo
+pnpx skills add coderfee/a-memo
+```
+
+Safe read commands:
 
 ```bash
 memo list --limit 20
@@ -107,11 +86,12 @@ memo show <id>
 memo tags
 memo links <id>
 memo review --count 5
-memo image <id>
+memo backup
+memo export --out memos.json
 memo flomo-import export.html --dry-run
 ```
 
-Write commands require explicit user intent:
+Write commands need explicit user intent:
 
 ```bash
 memo add "content #tag"
@@ -120,11 +100,11 @@ memo tag <id> "#tag"
 memo link <id1> <id2>
 memo unlink <id1> <id2>
 memo delete <id>
-memo review --push
+memo review --count 1 --push
 memo import memos.json
 ```
 
-Risky commands require a backup and explicit confirmation:
+High-risk commands need a backup and explicit confirmation:
 
 ```bash
 memo import memos.json --replace
@@ -133,27 +113,12 @@ memo reset --force
 
 Agent workflow:
 
-1. Classify the user request: search, save, edit, tag, link, review, import, export, image, or recovery.
-2. Inspect current context with `list`, `search`, `tags`, or `links`.
-3. Run the smallest authorized command.
-4. Verify the result with a narrow read command.
-5. Report memo ids, tags, backup paths, and verification results.
+1. Inspect with `list`, `search`, `show`, `tags`, or `links`.
+2. Run the smallest authorized command.
+3. Verify with a narrow read command.
+4. Report memo ids, tags, file paths, backup paths, and verification results.
 
-Share image style choice:
-
-- Use `paper` by default.
-- Use `clean` when the user wants a plain note.
-- Use `ink` when the user wants stronger visual identity.
-
-More detailed agent guidance lives in [skills/memo/SKILL.md](skills/memo/SKILL.md).
-
-Install the Codex skill:
-
-```bash
-npx skills add coderfee/a-memo
-bunx skills add coderfee/a-memo
-pnpx skills add coderfee/a-memo
-```
+Detailed agent guidance lives in [skills/memo/SKILL.md](skills/memo/SKILL.md).
 
 ## License
 
