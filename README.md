@@ -38,12 +38,14 @@ memo list "#idea"
 memo show 1
 memo search "later"
 memo review
+memo insights
 ```
 
 More commands:
 
 ```bash
 memo tags
+memo insights --view tags
 memo link 1 2
 memo links 1
 memo image 1 --style ink

@@ -203,6 +203,87 @@ def test_review_empty_when_no_eligible_memos(data_dir, capsys):
     assert (code, out.strip(), err) == (0, "[]", "")
 
 
+def test_insights_overview_tags_review_and_links(data_dir, capsys):
+    run_cli(["add", "fresh ai note", "#work/ai"], capsys)
+    run_cli(["add", "old solo note", "#life"], capsys)
+    run_cli(["add", "linked old note", "#work"], capsys)
+    run_cli(["link", "1", "3", "--type", "supports"], capsys)
+
+    now = time.time()
+    old = now - 200 * 86400
+    recent = now - 5 * 86400
+    with sqlite3.connect(db_path(data_dir)) as conn:
+        conn.execute(
+            "UPDATE memos SET created_at=?, last_review_at=NULL WHERE id=2",
+            (old,),
+        )
+        conn.execute(
+            "UPDATE memos SET created_at=?, last_review_at=?, review_count=2 WHERE id=3",
+            (old, recent),
+        )
+
+    code, out, err = run_cli(["insights"], capsys)
+    overview = parse_json_output(out)
+    assert code == 0
+    assert err == ""
+    assert overview["view"] == "overview"
+    assert overview["window"]["days"] == 30
+    assert overview["totals"] == {"memos": 3, "tags": 3, "links": 1}
+    assert overview["activity"]["created"] == 1
+    assert overview["activity"]["reviewed"] == 1
+    assert overview["top_tags"][0] == {"tag": "#work/ai", "count": 1}
+    assert overview["review"]["due"] == 1
+    assert overview["review"]["stale"] == 1
+    assert overview["links"]["linked_memos"] == 2
+    assert overview["links"]["unlinked_memos"] == 1
+
+    code, out, err = run_cli(["insights", "--days", "0", "--view", "tags"], capsys)
+    tags = parse_json_output(out)
+    assert code == 0
+    assert err == ""
+    assert tags["window"]["since"] is None
+    assert tags["unique_tags"] == 3
+    assert {"tag": "#work", "count": 1} in tags["global_top_tags"]
+
+    code, out, err = run_cli(["insights", "--view", "review"], capsys)
+    review = parse_json_output(out)
+    assert code == 0
+    assert err == ""
+    assert review["due"] == 1
+    assert review["never_reviewed"] == 2
+    assert review["most_reviewed"][0]["id"] == 3
+
+    code, out, err = run_cli(["insights", "--view", "links"], capsys)
+    links = parse_json_output(out)
+    assert code == 0
+    assert err == ""
+    assert links["total_links"] == 1
+    assert links["relation_types"] == [{"relation_type": "supports", "count": 1}]
+
+
+def test_insights_empty_database_and_invalid_args(data_dir, capsys):
+    code, out, err = run_cli(["insights"], capsys)
+    payload = parse_json_output(out)
+    assert code == 0
+    assert err == ""
+    assert payload["totals"] == {"memos": 0, "tags": 0, "links": 0}
+    assert payload["top_tags"] == []
+    assert payload["review"]["due"] == 0
+    assert payload["links"]["unlinked_memos"] == 0
+
+    with pytest.raises(SystemExit) as invalid_view_exit:
+        cli.main(["insights", "--view", "trends"])
+    assert invalid_view_exit.value.code == 2
+
+    with pytest.raises(SystemExit) as invalid_days_exit:
+        cli.main(["insights", "--days", "-1"])
+    assert invalid_days_exit.value.code == 2
+
+    with pytest.raises(SystemExit) as invalid_limit_exit:
+        cli.main(["insights", "--limit", "-1"])
+    assert invalid_limit_exit.value.code == 2
+
+
 def test_image_png_rendering(data_dir, tmp_path, capsys):
     run_cli(["add", "shareable memo", "#img"], capsys)
 

@@ -40,6 +40,7 @@ COMMANDS = [
     "link",
     "unlink",
     "links",
+    "insights",
     "backup",
     "export",
     "import",
@@ -120,6 +121,7 @@ def _print_help_and_exit(exit_code=0):
     print("    link           link two memos")
     print("    unlink         unlink two memos")
     print("    links          view memo links")
+    print("    insights       show memo insights")
     print("    backup         backup SQLite database")
     print("    export         export data as JSON")
     print("    import         import JSON export")

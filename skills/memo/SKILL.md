@@ -14,7 +14,7 @@ with clear intent, verify every write, and protect data before risky operations.
 ## Decision Rules
 
 - Read directly when the user asks to find, show, list, search, review, inspect tags,
-  inspect links, export, back up, dry-run an import, or generate an image.
+  inspect links, inspect insights, export, back up, dry-run an import, or generate an image.
 - Write only when the user asks to save, update, delete, tag, link, unlink, import, push review
   state, or reset data.
 - Back up before destructive or bulk operations.
@@ -36,6 +36,10 @@ memo show <id> --links
 memo tags
 memo links <id>
 memo review --count 5
+memo insights
+memo insights --view tags
+memo insights --view review
+memo insights --view links
 memo backup
 memo export --out memos.json
 memo image <id>
@@ -149,6 +153,18 @@ memo review --count 1 --push
 ```
 
 Use `review --push` only for a real review session, because it records review state.
+
+Insights:
+
+```bash
+memo insights
+memo insights --days 90
+memo insights --view tags
+memo insights --view review
+memo insights --view links
+```
+
+Insights are read-only and return JSON.
 
 Import:
 
