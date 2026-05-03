@@ -134,8 +134,6 @@ def cmd_review(conn, args):
             }
         )
 
-    print(json.dumps(result, ensure_ascii=False, indent=2))
-
     if args.push and ids:
         now = time.time()
         _append_history(rows, now)
@@ -149,6 +147,11 @@ def cmd_review(conn, args):
                 """,
                 [now] + ids,
             )
+        # Use updated review_count
+        for i, row in enumerate(rows):
+            result[i]["review_count"] = row["review_count"] + 1
+
+    print(json.dumps(result, ensure_ascii=False, indent=2))
 
 
 def _append_history(rows, reviewed_at=None):
